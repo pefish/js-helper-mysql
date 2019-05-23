@@ -1,0 +1,28 @@
+{
+  "name": "@pefish/js-helper-mysql",
+  "version": "0.0.1",
+  "main": "./lib/mysql.js",
+  "types": "./types/*.d.ts",
+  "scripts": {
+    "test": "mocha --require ts-node/register src/mysql.test.ts",
+    "build": "tsc && yarn tslint",
+    "tslint": "tslint -c tslint.json -p tsconfig.json",
+    "prepublish": "yarn build"
+  },
+  "dependencies": {
+    "js-node-assist": "^0.5.8",
+    "mysql2": "^1.6.5",
+    "p-js-assert": "^0.0.1",
+    "p-js-error": "^0.0.4",
+    "p-js-utils": "^0.0.8",
+    "sequelize": "^4.41.0"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.1.7",
+    "@types/mocha": "^5.2.6",
+    "@types/node": "^11.13.7",
+    "ts-node": "^8.1.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  }
+}
