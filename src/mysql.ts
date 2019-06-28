@@ -1,9 +1,9 @@
-import 'js-node-assist'
-import FileUtil from 'p-js-utils/lib/file'
+import '@pefish/js-node-assist'
+import FileUtil from '@pefish/js-util-file'
 import * as path from 'path'
-import ErrorHelper from 'p-js-error'
-import ObjectUtil from 'p-js-utils/lib/object'
-import AssertUtil from 'p-js-assert'
+import ErrorHelper from '@pefish/js-error'
+import ObjectUtil from '@pefish/js-util-object'
+import AssertUtil from '@pefish/js-util-assert'
 import Sequelize from 'sequelize'
 
 class SequelizeHelper {

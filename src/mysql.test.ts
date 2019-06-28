@@ -1,4 +1,4 @@
-import 'js-node-assist'
+import '@pefish/js-node-assist'
 import * as assert from 'assert'
 import SequelizeHelper from './mysql'
 
@@ -15,6 +15,22 @@ describe('sequelizeHelper', () => {
     })
     await sequelizeHelper.init()
     // await sequelizeHelper.createDatabase('test', true)
+  })
+
+  it('select', async () => {
+    try {
+      const results = await sequelizeHelper.select({
+        select: `*`,
+        from: `test`,
+        where: {
+          user_id: undefined,
+        }
+      })
+      global.logger.error(results)
+    } catch (err) {
+      global.logger.error(err)
+      assert.throws(() => {}, err)
+    }
   })
 
   it('selectBySql', async () => {
