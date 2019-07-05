@@ -367,7 +367,7 @@ class SequelizeHelper {
       case 'select':
         let select = ''
         if (typeof data === 'string') {
-          return data
+          return (data.startsWith(`select`) ? '' : 'select ') + data
         }
         if (!data || data.length <= 0) {
           select = '*'
@@ -381,7 +381,7 @@ class SequelizeHelper {
         let where = ''
         if (data) {
           if (typeof data === 'string') {
-            return data
+            return (data.startsWith(`where`) ? '' : 'where ') + data
           }
           where = where + 'where 1 = 1 '
           for (const [key, value] of Object.entries(data)) {
@@ -424,7 +424,7 @@ class SequelizeHelper {
         let order = ''
         if (data) {
           if (typeof data === 'string') {
-            return 'order by ' + data
+            return (data.startsWith(`order by`) ? '' : 'order by ') + data
           }
           order = order + 'order by ' + data.map((val) => {
             return `${val[0]} ${val[1]}`
@@ -435,26 +435,36 @@ class SequelizeHelper {
         let limit = ''
         if (data) {
           if (typeof data === 'string') {
-            return `limit ${data}`
+            return (data.startsWith(`limit`) ? '' : 'limit ') + data
           }
           limit = `limit ${data[0]}, ${data[1]}`
         }
         return limit
       case 'forUpdate':
         let forUpdate = ''
-        if (data === true) {
-          forUpdate = 'for update'
+        if (data) {
+          if (typeof data === 'string') {
+            return (data.startsWith(`for update`) ? '' : 'for update ') + data
+          }
+          if (data === true) {
+            forUpdate = 'for update'
+          }
         }
         return forUpdate
       case 'groupBy':
-        let groupBy = ''
+        const groupBy = ''
         if (data) {
-          groupBy = 'group by ' + data
+          if (typeof data === 'string') {
+            return (data.startsWith(`group by`) ? '' : 'group by ') + data
+          }
         }
         return groupBy
       case 'update':
         let update = ''
         if (data) {
+          if (typeof data === 'string') {
+            return (data.startsWith(`update`) ? '' : 'update ') + data
+          }
           for (const [key, value] of Object.entries(data)) {
             if (value !== undefined && value !== null) {
               update = update + `${key} = '${this.regularString(value as string | number)}', `
@@ -466,6 +476,9 @@ class SequelizeHelper {
       case 'insert':
         let insert = ''
         if (data) {
+          if (typeof data === 'string') {
+            return (data.startsWith(`insert`) ? '' : 'insert ') + data
+          }
           data = ObjectUtil.removeEmpty(data)
           const fields = Object.keys(data).join(','), values = Object.values(data).map(val => `'${this.regularString(val as string | number)}'`).join(',')
           insert = `(${fields}) values (${values})`
