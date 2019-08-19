@@ -33,6 +33,22 @@ describe('sequelizeHelper', () => {
     }
   })
 
+  it('sum', async () => {
+    try {
+      const results = await sequelizeHelper.sum({
+        sum: `id`,
+        from: `test`,
+        where: {
+          user_id: `32452`,
+        }
+      })
+      global.logger.error(results)
+    } catch (err) {
+      global.logger.error(err)
+      assert.throws(() => {}, err)
+    }
+  })
+
   it('selectBySql', async () => {
     try {
       const tran = await sequelizeHelper.begin()

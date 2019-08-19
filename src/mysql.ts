@@ -358,7 +358,7 @@ class SequelizeHelper {
     transaction && (opt['transaction'] = transaction)
     global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
-    if (!results || results.length <= 0) {
+    if (!results || results.length <= 0 || !results[0]['sum']) {
       return `0`
     }
     return results[0]['sum'].toString() || `0`
