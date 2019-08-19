@@ -1,22 +1,112 @@
 import '@pefish/js-node-assist'
-import FileUtil from '@pefish/js-util-file'
-import * as path from 'path'
+import fs from 'fs'
 import ErrorHelper from '@pefish/js-error'
-import ObjectUtil from '@pefish/js-util-object'
-import AssertUtil from '@pefish/js-util-assert'
 import Sequelize from 'sequelize'
 
-class SequelizeHelper {
+interface MysqlConfigration {
+  host: string,
+  port?: number,
+  username: string,
+  password: string,
+  database: string,
+  filename?: string
+}
 
-  _models: object
-  _modelPath: string
-  _mysqlConfig: object
+interface SelectOpt {
+  select: string | string[],
+  from: string,
+  where?: string | {
+    [x: string]: any
+  },
+  order?: string | string[],
+  limit?: string | number[],
+  groupBy?: string | string[],
+  forUpdate?: boolean,
+  if?: boolean | (() => boolean),
+}
+
+interface SumOpt {
+  sum: string,
+  from: string,
+  where?: string | {
+    [x: string]: any
+  },
+  if?: boolean | (() => boolean),
+}
+
+interface CountOpt {
+  from: string,
+  where: string | {
+    [x: string]: any
+  },
+  if?: boolean | (() => boolean),
+}
+
+interface UnionSelectOpt {
+  from: string,
+  to: string,
+  unionType: string,
+  where?: string | {
+    [x: string]: any
+  },
+  order?: string | string[],
+  limit?: string | number[],
+  select: string | string[],
+  on: string[],
+  forUpdate?: boolean,
+  if?: boolean | (() => boolean),
+}
+
+interface UpdateOpt {
+  update: string | {
+    [x: string]: any
+  },
+  from: string,
+  where: string | {
+    [x: string]: any
+  },
+  if?: boolean | (() => boolean),
+}
+
+interface DeleteOpt {
+  from: string,
+  where: string | {
+    [x: string]: any
+  },
+  if?: boolean | (() => boolean),
+}
+
+interface UpdateOrInsertOpt {
+  updateOrInsert: {
+    [x: string]: any
+  },
+  from: string,
+  where: string | {
+    [x: string]: any
+  },
+  if?: boolean | (() => boolean),
+}
+
+interface InsertOpt {
+  insert: {
+    [x: string]: any
+  },
+  from: string,
+  if?: boolean | (() => boolean),
+}
+
+interface BatchInsertOpt {
+  batchInsert: [string[], string[][]],
+  from: string,
+  if?: boolean | (() => boolean),
+}
+
+class SequelizeHelper {
+  private mysqlConfig: MysqlConfigration
   sequelize: any
 
-  constructor (mysqlConfig: object, modelPath: string = null) {
-    this._models = {}
-    this._modelPath = modelPath
-    this._mysqlConfig = mysqlConfig
+  constructor (mysqlConfig: MysqlConfigration) {
+    this.mysqlConfig = mysqlConfig
     this.sequelize = null
   }
 
@@ -25,9 +115,9 @@ class SequelizeHelper {
    */
   async init (dbType: string = 'mysql'): Promise<void> {
     if (dbType === 'mysql') {
-      this.sequelize = new Sequelize(this._mysqlConfig['database'], this._mysqlConfig['username'], this._mysqlConfig['password'], {
-        host: this._mysqlConfig['host'],
-        port: this._mysqlConfig['port'] || 3306,
+      this.sequelize = new Sequelize(this.mysqlConfig.database, this.mysqlConfig.username, this.mysqlConfig.password, {
+        host: this.mysqlConfig.host,
+        port: this.mysqlConfig.port || 3306,
         dialect: 'mysql',
         pool: {
           max: 30,
@@ -51,46 +141,23 @@ class SequelizeHelper {
         },
         timezone: '+00:00' // 设置写入的时间的时区
       })
-      global.logger.info(`连接mysql: ${this._mysqlConfig['host']} 中...`)
+      global.logger.info(`连接mysql: ${this.mysqlConfig.host} 中...`)
       await this.sequelize.authenticate()
-      global.logger.info(`mysql: ${this._mysqlConfig['host']} 连接成功`)
+      global.logger.info(`mysql: ${this.mysqlConfig.host} 连接成功`)
     } else if (dbType === 'sqlite') {
-      this.sequelize = new Sequelize(this._mysqlConfig['database'], null, null, {
+      this.sequelize = new Sequelize(this.mysqlConfig.database, null, null, {
         dialect: 'sqlite',
-        storage: this._mysqlConfig['filename'],
+        storage: this.mysqlConfig.filename,
         logging: (sql) => {
           // global[`debug`] && logger.info(sql)
         }
       })
-      global.logger.info(`连接sqlite: ${this._mysqlConfig['filename']} 中...`)
+      global.logger.info(`连接sqlite: ${this.mysqlConfig.filename} 中...`)
       await this.sequelize.authenticate()
-      global.logger.info(`sqlite: ${this._mysqlConfig['filename']} 连接成功`)
+      global.logger.info(`sqlite: ${this.mysqlConfig.filename} 连接成功`)
     } else {
       throw new ErrorHelper(`dbType 有误。dbType: ${dbType}`)
     }
-    this._modelPath && this._geneModels()
-  }
-
-  _geneModels (): object {
-    const filesAndDirs = FileUtil.getFilesAndDirs(this._modelPath)
-    for (const file of filesAndDirs['files'].values()) {
-      const modelName = file.substr(0, file.length - 3).toLowerCase()
-      this._models[modelName] = (require(path.resolve(`${this._modelPath}/${file}`)).default)(this)
-      Object.assign(this._models[modelName], this._modelMethods(this._models[modelName]))
-    }
-    return this._models
-  }
-
-  /**
-   * 根据模型同步建立表结构
-   * @param isForce
-   * @returns {Promise<boolean>}
-   */
-  async sync (isForce: boolean): Promise<boolean> {
-    for (const model of Object.values(this._geneModels())) {
-      await model.sync(isForce)
-    }
-    return true
   }
 
   async query (sql: string, opt: object = null): Promise<any> {
@@ -107,7 +174,7 @@ class SequelizeHelper {
    * @returns {Promise<void>}
    */
   async executeSqlFile (filename: string): Promise<any> {
-    const sql = `BEGIN;${FileUtil.readSync(filename).toString()}COMMIT;`
+    const sql = `BEGIN;${fs.readFileSync(filename).toString()}COMMIT;`
     global.logger.info(`[sql] ${sql}`)
     return await this.sequelize.query(sql, {
       raw: true
@@ -204,7 +271,7 @@ class SequelizeHelper {
    */
   async createDatabase (databaseName: string, force: boolean = false): Promise<any> {
     try {
-      await this.dropDatabase(databaseName)
+      force === true && await this.dropDatabase(databaseName)
     } catch (err) {
 
     }
@@ -225,30 +292,21 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async select (opts: object, transaction: any = null): Promise<Array<any>> {
-    // opts = {
-    //   select: ['*'],
-    //   from: '',
-    //   where: {},
-    //   order: [],
-    //   limit: [0, 1],
-    //   forUpdate: true
-    //   if: true
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async select (opts: SelectOpt, transaction: any = null): Promise<Array<any>> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
     // sql
     const sql = `
       select
-        ${opts['select']}
+        ${opts.select}
       from
-        ${opts['from']}
-      ${await this._assembleParam('where', opts['where'])}
-      ${await this._assembleParam('order', opts['order'])}
-      ${await this._assembleParam('limit', opts['limit'])}
-      ${await this._assembleParam('groupBy', opts['groupby'])}
-      ${await this._assembleParam('forUpdate', opts['forUpdate'])}
+        ${opts.from}
+      ${await this._assembleParam('where', opts.where)}
+      ${await this._assembleParam('order', opts.order)}
+      ${await this._assembleParam('limit', opts.limit)}
+      ${await this._assembleParam('groupBy', opts.groupBy)}
+      ${await this._assembleParam('forUpdate', opts.forUpdate)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.SELECT,
@@ -268,16 +326,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectOne (opts: object, transaction: any = null): Promise<any> {
-    // opts = {
-    //   select: ['*'],
-    //   from: '',
-    //   where: {},
-    //   order: [],
-    //   limit: [0, 1],
-    //   forUpdate: true
-    //   if: true
-    // }
+  async selectOne (opts: SelectOpt, transaction: any = null): Promise<any> {
     const results = await this.select(opts, transaction)
     if (results.length === 0) {
       return null
@@ -291,22 +340,17 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async sum (opts: object, transaction: any = null): Promise<number> {
-    // opts = {
-    //   sum: '',
-    //   from: '',
-    //   where: {},
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
-      return 0
+  async sum (opts: SumOpt, transaction: any = null): Promise<string> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
+      return `0`
     }
     // sql
     const sql = `
       select
-        sum(${opts['sum']}) as sum
+        sum(${opts.sum}) as sum
       from
-        ${opts['from']}
-      ${await this._assembleParam('where', opts['where'])}
+        ${opts.from}
+      ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.SELECT,
@@ -315,9 +359,9 @@ class SequelizeHelper {
     global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
     if (!results || results.length <= 0) {
-      return 0
+      return `0`
     }
-    return results[0]['sum'].toString().toNumber_() || 0
+    return results[0]['sum'].toString() || `0`
   }
 
   /**
@@ -334,12 +378,8 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async count (opts: object, transaction: any = null): Promise<number> {
-    // opts = {
-    //   from: '',
-    //   where: {}
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async count (opts: CountOpt, transaction: any = null): Promise<number> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return 0
     }
     // sql
@@ -347,8 +387,8 @@ class SequelizeHelper {
       select
         count(*) as count
       from
-        ${opts['from']}
-      ${await this._assembleParam('where', opts['where'])}
+        ${opts.from}
+      ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.SELECT,
@@ -379,44 +419,22 @@ class SequelizeHelper {
         return select
       case 'where':
         let where = ''
-        if (data) {
-          if (typeof data === 'string') {
-            return (data.startsWith(`where`) ? '' : 'where ') + data
+        if (!data) {
+          return where
+        }
+        if (typeof data === 'string') {
+          return (data.startsWith(`where`) ? '' : 'where ') + data
+        }
+        where = where + 'where 1 = 1 '
+        for (let [key, value] of Object.entries(data)) {
+          if (value === null || value === undefined) {
+            continue
           }
-          where = where + 'where 1 = 1 '
-          for (const [key, value] of Object.entries(data)) {
-            if (value !== null && value !== undefined) {
-              if (key === '$or') {
-                where += 'and ( 1 = 2 '
-                for (const [key1, value1] of Object.entries(value)) {
-                  if (value1 instanceof Array) {
-                    where += `or ${key1} ${value1[0]} ${value1[1]} `
-                  } else {
-                    if (value1 === 'null') {
-                      where += `or ${key1} is null `
-                    } else {
-                      where += `or ${key1} = '${this.regularString(value1)}' `
-                    }
-                  }
-                }
-                where += ')'
-              } else {
-                if (value instanceof Array) {
-                  where += `and ${key} ${value[0]} ${value[1]} `
-                } else if (value === 'null') {
-                  where += `and ${key} is null `
-                } else if (AssertUtil.isType(value, 'string', {}, false) || AssertUtil.isType(value, 'number', {}, false)) {
-                  where += `and ${key} = '${this.regularString(value as string | number)}' `
-                } else {
-                  // 对象
-                  for (const [cond, target] of Object.entries(value)) {
-                    if (target !== undefined && target !== null) {
-                      where += `and ${key} ${cond} ${target} `
-                    }
-                  }
-                }
-              }
-            }
+          if ((Object.prototype.toString.call(value) as string).endsWith(`String]`) && (value as string).startsWith(`s:`)) {
+            value = (value as string).substring(2)
+            where += `and ${(value as string).startsWith(key) ? '' : key} ${value} `
+          } else if ((Object.prototype.toString.call(value) as string).endsWith(`String]`) || (Object.prototype.toString.call(value) as string).endsWith(`Number]`)) {
+            where += `and ${key} = '${this.regularString(value as string | number)}' `
           }
         }
         return where
@@ -479,7 +497,11 @@ class SequelizeHelper {
           if (typeof data === 'string') {
             return (data.startsWith(`insert`) ? '' : 'insert ') + data
           }
-          data = ObjectUtil.removeEmpty(data)
+          for (let [key, value] of Object.entries(data)) {
+            if (value === null || value === undefined) {
+              delete data[key]
+            }
+          }
           const fields = Object.keys(data).join(','), values = Object.values(data).map(val => `'${this.regularString(val as string | number)}'`).join(',')
           insert = `(${fields}) values (${values})`
         }
@@ -510,44 +532,33 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async unionSelect (opts: object, transaction: any = null): Promise<Array<any>> {
-    // opts = {
-    //   from: '',
-    //   to: '',
-    //   unionType: 'left join'
-    //   where: {},
-    //   order: [],
-    //   limit: [0, 1],
-    //   select: [],
-    //   on: ['id', 'depositwithdraw_id'],
-    //   forUpdate: true
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async unionSelect (opts: UnionSelectOpt, transaction: any = null): Promise<Array<any>> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
-    if (!opts['from'] || !opts['to'] || !opts['on'] || !opts['unionType']) {
+    if (!opts.from || !opts.to || !opts.on || !opts.unionType) {
       throw new ErrorHelper(`params error`)
     }
     // select
-    const select = await this._assembleParam('select', opts['select'])
+    const select = await this._assembleParam('select', opts.select)
     // on
-    const on = `${opts['from']}.${opts['on'][0]} = ${opts['to']}.${opts['on'][1]}`
+    const on = `${opts.from}.${opts.on[0]} = ${opts.to}.${opts.on[1]}`
     // where
-    const where = await this._assembleParam('where', opts['where'])
+    const where = await this._assembleParam('where', opts.where)
     // order
-    const order = await this._assembleParam('order', opts['order'])
+    const order = await this._assembleParam('order', opts.order)
     // limit
-    const limit = await this._assembleParam('limit', opts['limit'])
+    const limit = await this._assembleParam('limit', opts.limit)
     // forUpdate
-    const forUpdate = await this._assembleParam('forUpdate', opts['forUpdate'])
+    const forUpdate = await this._assembleParam('forUpdate', opts.forUpdate)
     // sql
     const sql = `
       select
         ${select}
       from
-        ${opts['from']}
-      ${opts['unionType']}
-        ${opts['to']}
+        ${opts.from}
+      ${opts.unionType}
+        ${opts.to}
       on
         ${on}
       ${where}
@@ -573,22 +584,17 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async update (opts: object, transaction: any = null): Promise<any> {
-    // opts = {
-    //   update: {},
-    //   from: '',
-    //   where: {}
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async update (opts: UpdateOpt, transaction: any = null): Promise<any> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
     // sql
     const sql = `
       update
-        ${opts['from']}
+        ${opts.from}
       set
-        ${await this._assembleParam('update', opts['update'])}
-      ${await this._assembleParam('where', opts['where'])}
+        ${await this._assembleParam('update', opts.update)}
+      ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.UPDATE,
@@ -598,19 +604,15 @@ class SequelizeHelper {
     return await this.query(sql, opt)
   }
 
-  async delete (opts: object, transaction: any = null): Promise<any> {
-    // opts = {
-    //   from: '',
-    //   where: {}
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async delete (opts: DeleteOpt, transaction: any = null): Promise<any> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
     // sql
     const sql = `
       delete from
-        ${opts['from']}
-      ${await this._assembleParam('where', opts['where'])}
+        ${opts.from}
+      ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.DELETE,
@@ -626,36 +628,31 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null, 不传的话默认开启事务保证排他性
    * @returns {Promise<*>} id
    */
-  async updateOrInsert (opts: object, transaction: any = null): Promise<any> {
-    // opts = {
-    //   updateOrInsert: {},
-    //   from: '',
-    //   where: {}
-    // }
+  async updateOrInsert (opts: UpdateOrInsertOpt, transaction: any = null): Promise<any> {
     transaction || (transaction = await this.begin())
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
     try {
       const selectResult = await this.selectOne({
         select: 'id',
-        from: opts['from'],
-        where: opts['where']
+        from: opts.from,
+        where: opts.where
       }, transaction)
       if (!selectResult) {
         // insert
-        Object.assign(opts['updateOrInsert'], opts['where'])
+        Object.assign(opts.updateOrInsert, opts.where)
         const insertResult = await this.insert({
-          insert: opts['updateOrInsert'],
-          from: opts['from'],
+          insert: opts.updateOrInsert,
+          from: opts.from,
         }, transaction)
         await this.commit(transaction)
         return insertResult[0]
       } else {
         await this.update({
-          update: opts['updateOrInsert'],
-          from: opts['from'],
-          where: opts['where']
+          update: opts.updateOrInsert,
+          from: opts.from,
+          where: opts.where
         }, transaction)
         await this.commit(transaction)
         return selectResult['id']
@@ -672,37 +669,22 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>} [id, 影响条数]
    */
-  async insert (opts: object, transaction: any = null): Promise<any> {
-    // opts = {
-    //   insert: {},
-    //   from: '',
-    //   returnResult: true
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async insert (opts: InsertOpt, transaction: any = null): Promise<any> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
     // sql
     const sql = `
       insert into
-        ${opts['from']}
-      ${await this._assembleParam('insert', opts['insert'])}
+        ${opts.from}
+      ${await this._assembleParam('insert', opts.insert)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
     global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
-    const insertResult = await this.query(sql, opt)
-    if (opts['returnResult'] === true) {
-      const sql1 = `select * from ${opts['from']} where id = ${insertResult[0]} limit 0, 1`
-      global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql1}`)
-      return (await this.query(sql1, {
-        type: this.sequelize.QueryTypes.SELECT,
-        transaction: transaction
-      }))[0]
-    } else {
-      return insertResult
-    }
+    return await this.query(sql, opt)
   }
 
   /**
@@ -711,20 +693,15 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async batchInsert (opts: object, transaction: any = null): Promise<any> {
-    // opts = {
-    //   batchInsert: [['name', 'age'], [[], [], []]],
-    //   from: '',
-    //   if: true
-    // }
-    if (opts['if'] !== undefined && opts['if'] !== true && opts['if']() !== true) {
+  async batchInsert (opts: BatchInsertOpt, transaction: any = null): Promise<any> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
     // sql
     const sql = `
       insert into
-        ${opts['from']}
-      ${await this._assembleParam('batchInsert', opts['batchInsert'])}
+        ${opts.from}
+      ${await this._assembleParam('batchInsert', opts.batchInsert)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.INSERT,
@@ -787,55 +764,6 @@ class SequelizeHelper {
     transaction && (opt['transaction'] = transaction)
     global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
-  }
-
-  getModel (modelName: string): any {
-    return this._models[modelName.toLowerCase()]
-  }
-
-  _modelMethods (model: any): object {
-    // 会覆写sequelize model中的方法
-    return {
-      findLatestOne_: async (condition = {}) => {
-        return model.findOne({
-          where: condition,
-          order: [['updated_at', 'DESC']],
-        })
-      },
-      insert_: async (obj) => {
-        return model.create(obj)
-      },
-      updateInsert_: async (updateObj, condition) => {
-        const result = await model.findOne({
-          where: condition
-        })
-        if (result) {
-          await result.update(updateObj)
-        } else {
-          await model.create(Object.assign(updateObj, condition))
-        }
-        return true
-      },
-      delete_: async (condition) => {
-        const temp = await model.findOne({
-          where: condition
-        })
-        if (!temp) {
-          throw new ErrorHelper(`target not found`)
-        }
-        return temp.destroy()
-      },
-      update_: async (update, where) => {
-        const temp = await model.findOne({
-          where: where
-        })
-        if (!temp) {
-          throw new ErrorHelper(`target not found`)
-        }
-        await temp.update(update)
-        return true
-      }
-    }
   }
 }
 

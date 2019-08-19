@@ -23,7 +23,7 @@ describe('sequelizeHelper', () => {
         select: `*`,
         from: `test`,
         where: {
-          user_id: undefined,
+          user_id: `32452`,
         }
       })
       global.logger.error(results)
