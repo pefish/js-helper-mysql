@@ -231,7 +231,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<Array<any>> {
+  async selectBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<any[]> {
     const opt = {
       type: this.sequelize.QueryTypes.SELECT,
       replacements: replacements
@@ -292,7 +292,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async select (opts: SelectOpt, transaction: any = null): Promise<Array<any>> {
+  async select (opts: SelectOpt, transaction: any = null): Promise<any[]> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
@@ -326,7 +326,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectOne (opts: SelectOpt, transaction: any = null): Promise<any> {
+  async selectOne (opts: SelectOpt, transaction: any = null): Promise<any | null> {
     const results = await this.select(opts, transaction)
     if (results.length === 0) {
       return null
@@ -402,7 +402,7 @@ class SequelizeHelper {
     return results[0]['count']
   }
 
-  async _assembleParam (name: string, data: any): Promise<any> {
+  async _assembleParam (name: string, data: any): Promise<string> {
     switch (name) {
       case 'select':
         let select = ''
@@ -532,7 +532,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async unionSelect (opts: UnionSelectOpt, transaction: any = null): Promise<Array<any>> {
+  async unionSelect (opts: UnionSelectOpt, transaction: any = null): Promise<any[]> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
