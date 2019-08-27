@@ -4,7 +4,7 @@ import SequelizeHelper from './mysql'
 
 describe('sequelizeHelper', () => {
 
-  let sequelizeHelper
+  let sequelizeHelper: SequelizeHelper
 
   before(async () => {
     sequelizeHelper = new SequelizeHelper({
@@ -15,6 +15,16 @@ describe('sequelizeHelper', () => {
     })
     await sequelizeHelper.init()
     // await sequelizeHelper.createDatabase('test', true)
+  })
+
+  it('_assembleParam', async () => {
+    try {
+      const result = await sequelizeHelper._assembleParam(`order`, `order by id desc`)
+      global.logger.error(result)
+    } catch (err) {
+      global.logger.error(err)
+      assert.throws(() => {}, err)
+    }
   })
 
   it('select', async () => {
