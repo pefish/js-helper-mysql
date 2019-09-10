@@ -18,7 +18,7 @@ interface SelectOpt {
   where?: string | {
     [x: string]: any
   },
-  order?: string | string[],
+  order?: string | [string, string][],
   limit?: string | number[],
   groupBy?: string | string[],
   forUpdate?: boolean,
@@ -49,7 +49,7 @@ interface UnionSelectOpt {
   where?: string | {
     [x: string]: any
   },
-  order?: string | string[],
+  order?: string | [string, string][],
   limit?: string | number[],
   select: string | string[],
   on: string[],

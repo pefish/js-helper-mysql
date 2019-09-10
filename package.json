@@ -1,6 +1,6 @@
 {
   "name": "@pefish/js-helper-mysql",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "main": "./lib/mysql.js",
   "types": "./types/mysql.d.ts",
   "scripts": {
