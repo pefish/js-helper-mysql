@@ -17,6 +17,26 @@ describe('sequelizeHelper', () => {
     // await sequelizeHelper.createDatabase('test', true)
   })
 
+  it('insertOnDuplicateKey', async () => {
+    try {
+      const results = await sequelizeHelper.insertOnDuplicateKey({
+        from: `test`,
+        insert: {
+          id: `3`,
+          mobile: `111`
+        },
+        update: {
+          id: `1`,
+          mobile: `11`,
+        }
+      })
+      global.logger.error(results)
+    } catch (err) {
+      global.logger.error(err)
+      assert.throws(() => {}, err)
+    }
+  })
+
   it('_assembleParam', async () => {
     try {
       const result = await sequelizeHelper._assembleParam(`order`, `order by id desc`)

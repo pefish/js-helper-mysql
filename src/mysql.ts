@@ -95,6 +95,17 @@ interface InsertOpt {
   if?: boolean | (() => boolean),
 }
 
+interface InsertOnDuplicateKeyOpt {
+  insert: {
+    [x: string]: any
+  },
+  update: {
+    [x: string]: any
+  },
+  from: string,
+  if?: boolean | (() => boolean),
+}
+
 interface BatchInsertOpt {
   batchInsert: [string[], string[][]],
   from: string,
@@ -623,47 +634,6 @@ class SequelizeHelper {
   }
 
   /**
-   * 更新数据，没有就插入，具有排他性
-   * @param opts {Object} 参数
-   * @param transaction {Transaction} 事务实例, default: null, 不传的话默认开启事务保证排他性
-   * @returns {Promise<*>} id
-   */
-  async updateOrInsert (opts: UpdateOrInsertOpt, transaction: any = null): Promise<any> {
-    transaction || (transaction = await this.begin())
-    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
-      return
-    }
-    try {
-      const selectResult = await this.selectOne({
-        select: 'id',
-        from: opts.from,
-        where: opts.where
-      }, transaction)
-      if (!selectResult) {
-        // insert
-        Object.assign(opts.updateOrInsert, opts.where)
-        const insertResult = await this.insert({
-          insert: opts.updateOrInsert,
-          from: opts.from,
-        }, transaction)
-        await this.commit(transaction)
-        return insertResult[0]
-      } else {
-        await this.update({
-          update: opts.updateOrInsert,
-          from: opts.from,
-          where: opts.where
-        }, transaction)
-        await this.commit(transaction)
-        return selectResult['id']
-      }
-    } catch (err) {
-      await this.rollback(transaction)
-      throw err
-    }
-  }
-
-  /**
    * 插入数据
    * @param opts {Object} 参数
    * @param transaction {Transaction} 事务实例, default: null
@@ -678,6 +648,44 @@ class SequelizeHelper {
       insert into
         ${opts.from}
       ${await this._assembleParam('insert', opts.insert)}
+    `
+    const opt = {
+      type: this.sequelize.QueryTypes.INSERT,
+    }
+    transaction && (opt['transaction'] = transaction)
+    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    return await this.query(sql, opt)
+  }
+
+  async insertIgnore (opts: InsertOpt, transaction: any = null): Promise<any> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
+      return
+    }
+    // sql
+    const sql = `
+      insert ignore into
+        ${opts.from}
+      ${await this._assembleParam('insert', opts.insert)}
+    `
+    const opt = {
+      type: this.sequelize.QueryTypes.INSERT,
+    }
+    transaction && (opt['transaction'] = transaction)
+    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    return await this.query(sql, opt)
+  }
+
+  async insertOnDuplicateKey (opts: InsertOnDuplicateKeyOpt, transaction: any = null): Promise<any> {
+    if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
+      return
+    }
+    // sql
+    const sql = `
+      insert into
+        ${opts.from}
+      ${await this._assembleParam('insert', opts.insert)}
+      on duplicate key update
+      ${await this._assembleParam('update', opts.update)}
     `
     const opt = {
       type: this.sequelize.QueryTypes.INSERT,
