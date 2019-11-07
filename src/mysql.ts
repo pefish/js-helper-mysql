@@ -444,8 +444,11 @@ class SequelizeHelper {
           if ((Object.prototype.toString.call(value) as string).endsWith(`String]`) && (value as string).startsWith(`s:`)) {
             value = (value as string).substring(2)
             where += `and ${(value as string).startsWith(key) ? '' : key} ${value} `
-          } else if ((Object.prototype.toString.call(value) as string).endsWith(`String]`) || (Object.prototype.toString.call(value) as string).endsWith(`Number]`)) {
+            continue
+          }
+          if ((Object.prototype.toString.call(value) as string).endsWith(`String]`) || (Object.prototype.toString.call(value) as string).endsWith(`Number]`)) {
             where += `and ${key} = '${this.regularString(value as string | number)}' `
+            continue
           }
         }
         return where

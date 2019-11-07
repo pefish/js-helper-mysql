@@ -13,7 +13,7 @@ describe('sequelizeHelper', () => {
       'password': 'root',
       'database': 'test'
     })
-    await sequelizeHelper.init()
+    // await sequelizeHelper.init()
     // await sequelizeHelper.createDatabase('test', true)
   })
 
@@ -33,7 +33,7 @@ describe('sequelizeHelper', () => {
       global.logger.error(results)
     } catch (err) {
       global.logger.error(err)
-      assert.throws(() => {}, err)
+      assert.throws(() => { }, err)
     }
   })
 
@@ -41,9 +41,15 @@ describe('sequelizeHelper', () => {
     try {
       const result = await sequelizeHelper._assembleParam(`order`, `order by id desc`)
       global.logger.error(result)
+      const result1 = await sequelizeHelper._assembleParam(`where`, {
+        source_address: `5134515`,
+        status: `s:in (5,7)`,
+        chain: `fadf`,
+      })
+      global.logger.error(result1)
     } catch (err) {
       global.logger.error(err)
-      assert.throws(() => {}, err)
+      assert.throws(() => { }, err)
     }
   })
 
@@ -59,7 +65,7 @@ describe('sequelizeHelper', () => {
       global.logger.error(results)
     } catch (err) {
       global.logger.error(err)
-      assert.throws(() => {}, err)
+      assert.throws(() => { }, err)
     }
   })
 
@@ -75,7 +81,7 @@ describe('sequelizeHelper', () => {
       global.logger.error(results)
     } catch (err) {
       global.logger.error(err)
-      assert.throws(() => {}, err)
+      assert.throws(() => { }, err)
     }
   })
 
@@ -87,7 +93,7 @@ describe('sequelizeHelper', () => {
       global.logger.error(results)
     } catch (err) {
       global.logger.error(err)
-      assert.throws(() => {}, err)
+      assert.throws(() => { }, err)
     }
   })
 
@@ -174,7 +180,7 @@ describe('sequelizeHelper', () => {
       // assert.strictEqual(result.length, 2)
     } catch (err) {
       global.logger.error(err)
-      assert.throws(() => {}, err)
+      assert.throws(() => { }, err)
     }
   })
 
