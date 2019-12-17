@@ -128,7 +128,7 @@ class SequelizeHelper {
   constructor(mysqlConfig: MysqlConfigration, logger: LoggerInterface = console) {
     this.mysqlConfig = mysqlConfig
     this.sequelize = null
-    if (this.logger === null) {
+    if (logger === null) {
       this.logger = {
         debug(...msg): void { },
         info(...msg): void { },

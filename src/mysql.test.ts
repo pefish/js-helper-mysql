@@ -11,8 +11,8 @@ describe('sequelizeHelper', () => {
       'username': 'root',
       'password': 'root',
       'database': 'test'
-    })
-    // await sequelizeHelper.init()
+    }, null)
+    await sequelizeHelper.init()
     // await sequelizeHelper.createDatabase('test', true)
   })
 
