@@ -1,4 +1,3 @@
-import '@pefish/js-node-assist'
 import * as assert from 'assert'
 import SequelizeHelper from './mysql'
 
@@ -30,9 +29,9 @@ describe('sequelizeHelper', () => {
           mobile: `11`,
         }
       })
-      global.logger.error(results)
+      console.error(results)
     } catch (err) {
-      global.logger.error(err)
+      console.error(err)
       assert.throws(() => { }, err)
     }
   })
@@ -40,15 +39,15 @@ describe('sequelizeHelper', () => {
   it('_assembleParam', async () => {
     try {
       const result = await sequelizeHelper._assembleParam(`order`, `order by id desc`)
-      global.logger.error(result)
+      console.error(result)
       const result1 = await sequelizeHelper._assembleParam(`where`, {
         source_address: `5134515`,
         status: `s:in (5,7)`,
         chain: `fadf`,
       })
-      global.logger.error(result1)
+      console.error(result1)
     } catch (err) {
-      global.logger.error(err)
+      console.error(err)
       assert.throws(() => { }, err)
     }
   })
@@ -62,9 +61,9 @@ describe('sequelizeHelper', () => {
           user_id: `32452`,
         }
       })
-      global.logger.error(results)
+      console.error(results)
     } catch (err) {
-      global.logger.error(err)
+      console.error(err)
       assert.throws(() => { }, err)
     }
   })
@@ -78,9 +77,9 @@ describe('sequelizeHelper', () => {
           user_id: `32452`,
         }
       })
-      global.logger.error(results)
+      console.error(results)
     } catch (err) {
-      global.logger.error(err)
+      console.error(err)
       assert.throws(() => { }, err)
     }
   })
@@ -90,9 +89,9 @@ describe('sequelizeHelper', () => {
       const tran = await sequelizeHelper.begin()
       const results = await sequelizeHelper.selectBySql('select * from test', {}, tran)
       await sequelizeHelper.commit(tran)
-      global.logger.error(results)
+      console.error(results)
     } catch (err) {
-      global.logger.error(err)
+      console.error(err)
       assert.throws(() => { }, err)
     }
   })
@@ -176,10 +175,10 @@ describe('sequelizeHelper', () => {
           from: 'test'
         }
       )
-      global.logger.error(result)
+      console.error(result)
       // assert.strictEqual(result.length, 2)
     } catch (err) {
-      global.logger.error(err)
+      console.error(err)
       assert.throws(() => { }, err)
     }
   })

@@ -1,6 +1,4 @@
-import '@pefish/js-node-assist'
 import fs from 'fs'
-import ErrorHelper from '@pefish/js-error'
 import Sequelize from 'sequelize'
 
 interface MysqlConfigration {
@@ -112,19 +110,40 @@ interface BatchInsertOpt {
   if?: boolean | (() => boolean),
 }
 
+interface LoggerInterface {
+  debug(...msg): void
+
+  info(...msg): void
+
+  warn(...msg): void
+
+  error(...msg): void
+}
+
 class SequelizeHelper {
   private mysqlConfig: MysqlConfigration
   sequelize: any
+  private logger: LoggerInterface
 
-  constructor (mysqlConfig: MysqlConfigration) {
+  constructor(mysqlConfig: MysqlConfigration, logger: LoggerInterface = console) {
     this.mysqlConfig = mysqlConfig
     this.sequelize = null
+    if (this.logger === null) {
+      this.logger = {
+        debug(...msg): void { },
+        info(...msg): void { },
+        warn(...msg): void { },
+        error(...msg): void { },
+      }
+    } else {
+      this.logger = logger
+    }
   }
 
   /**
    * 加载models
    */
-  async init (dbType: string = 'mysql'): Promise<void> {
+  async init(dbType: string = 'mysql'): Promise<void> {
     if (dbType === 'mysql') {
       this.sequelize = new Sequelize(this.mysqlConfig.database, this.mysqlConfig.username, this.mysqlConfig.password, {
         host: this.mysqlConfig.host,
@@ -152,9 +171,9 @@ class SequelizeHelper {
         },
         timezone: '+00:00' // 设置写入的时间的时区
       })
-      global.logger.info(`连接mysql: ${this.mysqlConfig.host} 中...`)
+      this.logger.info(`连接mysql: ${this.mysqlConfig.host} 中...`)
       await this.sequelize.authenticate()
-      global.logger.info(`mysql: ${this.mysqlConfig.host} 连接成功`)
+      this.logger.info(`mysql: ${this.mysqlConfig.host} 连接成功`)
     } else if (dbType === 'sqlite') {
       this.sequelize = new Sequelize(this.mysqlConfig.database, null, null, {
         dialect: 'sqlite',
@@ -163,19 +182,19 @@ class SequelizeHelper {
           // global[`debug`] && logger.info(sql)
         }
       })
-      global.logger.info(`连接sqlite: ${this.mysqlConfig.filename} 中...`)
+      this.logger.info(`连接sqlite: ${this.mysqlConfig.filename} 中...`)
       await this.sequelize.authenticate()
-      global.logger.info(`sqlite: ${this.mysqlConfig.filename} 连接成功`)
+      this.logger.info(`sqlite: ${this.mysqlConfig.filename} 连接成功`)
     } else {
-      throw new ErrorHelper(`dbType 有误。dbType: ${dbType}`)
+      throw new Error(`dbType 有误。dbType: ${dbType}`)
     }
   }
 
-  async query (sql: string, opt: object = null): Promise<any> {
+  async query(sql: string, opt: object = null): Promise<any> {
     return opt ? this.sequelize.query(sql, opt) : this.sequelize.query(sql)
   }
 
-  regularString (str: string | number): string {
+  regularString(str: string | number): string {
     return str.toString().replace(/\\/g, '\\\\').replace(/\'/g, '\\\'')
   }
 
@@ -184,17 +203,17 @@ class SequelizeHelper {
    * @param filename {string} 绝对路径
    * @returns {Promise<void>}
    */
-  async executeSqlFile (filename: string): Promise<any> {
+  async executeSqlFile(filename: string): Promise<any> {
     const sql = `BEGIN;${fs.readFileSync(filename).toString()}COMMIT;`
-    global.logger.info(`[sql] ${sql}`)
+    this.logger.info(`[sql] ${sql}`)
     return await this.sequelize.query(sql, {
       raw: true
     })
   }
 
-  async executeSql (sql: string): Promise<any> {
+  async executeSql(sql: string): Promise<any> {
     const sql1 = `BEGIN;${sql}COMMIT;`
-    global.logger.info(`[sql] ${sql1}`)
+    this.logger.info(`[sql] ${sql1}`)
     return await this.sequelize.query(sql1, {
       raw: true
     })
@@ -204,9 +223,9 @@ class SequelizeHelper {
    * 开启事务
    * @returns {Promise<*|Transaction>}
    */
-  async begin (): Promise<any> {
+  async begin(): Promise<any> {
     const transaction = new this.sequelize.Transaction(this.sequelize)
-    global.logger.info(`[sql] [transactionId: ${transaction.id}] begin`)
+    this.logger.info(`[sql] [transactionId: ${transaction.id}] begin`)
     await transaction.prepareEnvironment()
     return transaction
   }
@@ -216,9 +235,9 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例
    * @returns {Promise<Promise<*>|Promise|*|Object>}
    */
-  async commit (transaction: any): Promise<any> {
+  async commit(transaction: any): Promise<any> {
     if (!transaction.finished) {
-      global.logger.info(`[sql] [transactionId: ${transaction.id}] commit`)
+      this.logger.info(`[sql] [transactionId: ${transaction.id}] commit`)
       return await transaction.commit()
     }
   }
@@ -228,10 +247,10 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例
    * @returns {Promise<T>}
    */
-  async rollback (transaction: any): Promise<any> {
+  async rollback(transaction: any): Promise<any> {
     if (!transaction.finished) {
-      global.logger.info(`[sql] [transactionId: ${transaction.id}] rollback`)
-      return await transaction.rollback().catch(() => {})
+      this.logger.info(`[sql] [transactionId: ${transaction.id}] rollback`)
+      return await transaction.rollback().catch(() => { })
     }
   }
 
@@ -242,13 +261,13 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<any[]> {
+  async selectBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any[]> {
     const opt = {
       type: this.sequelize.QueryTypes.SELECT,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
     if (!results || results.length <= 0) {
       return []
@@ -263,13 +282,13 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<boolean>}
    */
-  async createBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<boolean> {
+  async createBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<boolean> {
     const opt = {
       type: this.sequelize.QueryTypes.UPDATE,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     await this.query(sql, opt)
     return true
   }
@@ -280,20 +299,20 @@ class SequelizeHelper {
    * @param force 存在就drop掉
    * @returns {Promise<*>}
    */
-  async createDatabase (databaseName: string, force: boolean = false): Promise<any> {
+  async createDatabase(databaseName: string, force: boolean = false): Promise<any> {
     try {
       force === true && await this.dropDatabase(databaseName)
     } catch (err) {
 
     }
     const sql = `create database ${databaseName}`
-    global.logger.info(`[sql] ${sql}`)
+    this.logger.info(`[sql] ${sql}`)
     return await this.query(sql)
   }
 
-  async dropDatabase (databaseName: string): Promise<any> {
+  async dropDatabase(databaseName: string): Promise<any> {
     const sql = `drop database ${databaseName}`
-    global.logger.info(`[sql] ${sql}`)
+    this.logger.info(`[sql] ${sql}`)
     return await this.query(sql)
   }
 
@@ -303,7 +322,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async select (opts: SelectOpt, transaction: any = null): Promise<any[]> {
+  async select(opts: SelectOpt, transaction: any = null): Promise<any[]> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
@@ -323,7 +342,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
     if (!results || results.length <= 0) {
       return []
@@ -337,7 +356,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectOne (opts: SelectOpt, transaction: any = null): Promise<any | null> {
+  async selectOne(opts: SelectOpt, transaction: any = null): Promise<any | null> {
     const results = await this.select(opts, transaction)
     if (results.length === 0) {
       return null
@@ -351,7 +370,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async sum (opts: SumOpt, transaction: any = null): Promise<string> {
+  async sum(opts: SumOpt, transaction: any = null): Promise<string> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return `0`
     }
@@ -367,7 +386,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
     if (!results || results.length <= 0 || !results[0]['sum']) {
       return `0`
@@ -379,7 +398,7 @@ class SequelizeHelper {
    * 关闭数据库连接
    * @returns {Promise<void>}
    */
-  async close (): Promise<any> {
+  async close(): Promise<any> {
     return this.sequelize && this.sequelize.close()
   }
 
@@ -389,7 +408,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async count (opts: CountOpt, transaction: any = null): Promise<number> {
+  async count(opts: CountOpt, transaction: any = null): Promise<number> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return 0
     }
@@ -405,7 +424,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
     if (!results || results.length <= 0) {
       return 0
@@ -413,7 +432,7 @@ class SequelizeHelper {
     return results[0]['count']
   }
 
-  async _assembleParam (name: string, data: any): Promise<string> {
+  async _assembleParam(name: string, data: any): Promise<string> {
     switch (name) {
       case 'select':
         let select = ''
@@ -546,12 +565,12 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async unionSelect (opts: UnionSelectOpt, transaction: any = null): Promise<any[]> {
+  async unionSelect(opts: UnionSelectOpt, transaction: any = null): Promise<any[]> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
     if (!opts.from || !opts.to || !opts.on || !opts.unionType) {
-      throw new ErrorHelper(`params error`)
+      throw new Error(`params error`)
     }
     // select
     const select = await this._assembleParam('select', opts.select)
@@ -584,7 +603,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     const results = await this.query(sql, opt)
     if (!results || results.length <= 0) {
       return []
@@ -598,7 +617,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async update (opts: UpdateOpt, transaction: any = null): Promise<any> {
+  async update(opts: UpdateOpt, transaction: any = null): Promise<any> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
@@ -614,11 +633,11 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.UPDATE,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
-  async delete (opts: DeleteOpt, transaction: any = null): Promise<any> {
+  async delete(opts: DeleteOpt, transaction: any = null): Promise<any> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
@@ -632,7 +651,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.DELETE,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -642,7 +661,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>} [id, 影响条数]
    */
-  async insert (opts: InsertOpt, transaction: any = null): Promise<any> {
+  async insert(opts: InsertOpt, transaction: any = null): Promise<any> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
@@ -656,11 +675,11 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
-  async insertIgnore (opts: InsertOpt, transaction: any = null): Promise<any> {
+  async insertIgnore(opts: InsertOpt, transaction: any = null): Promise<any> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
@@ -674,11 +693,11 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
-  async insertOnDuplicateKey (opts: InsertOnDuplicateKeyOpt, transaction: any = null): Promise<any> {
+  async insertOnDuplicateKey(opts: InsertOnDuplicateKeyOpt, transaction: any = null): Promise<any> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return
     }
@@ -694,7 +713,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -704,7 +723,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async batchInsert (opts: BatchInsertOpt, transaction: any = null): Promise<any> {
+  async batchInsert(opts: BatchInsertOpt, transaction: any = null): Promise<any> {
     if (opts.if !== undefined && opts.if !== true && (opts.if as () => boolean)() !== true) {
       return []
     }
@@ -718,11 +737,11 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
-  async startTransaction (fun: (tran: any) => Promise<void>): Promise<void> {
+  async startTransaction(fun: (tran: any) => Promise<void>): Promise<void> {
     const tran = await this.begin()
     try {
       await fun(tran)
@@ -740,23 +759,23 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例
    * @returns {Promise<*>}
    */
-  async updateBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
+  async updateBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
     const opt = {
       type: this.sequelize.QueryTypes.UPDATE,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
-  async deleteBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
+  async deleteBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
     const opt = {
       type: this.sequelize.QueryTypes.DELETE,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -767,13 +786,13 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例
    * @returns {Promise<*>}
    */
-  async insertBySql (sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
+  async insertBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
     const opt = {
       type: this.sequelize.QueryTypes.INSERT,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    global.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 }
