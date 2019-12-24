@@ -171,9 +171,9 @@ class SequelizeHelper {
         },
         timezone: '+00:00' // 设置写入的时间的时区
       })
-      console.log(`connecting mysql: ${this.mysqlConfig.host} ...`)
+      this.logger.info(`connecting mysql: ${this.mysqlConfig.host} ...`)
       await this.sequelize.authenticate()
-      console.log(`connection succeeded: ${this.mysqlConfig.host}`)
+      this.logger.info(`connection succeeded: ${this.mysqlConfig.host}`)
     } else if (dbType === 'sqlite') {
       this.sequelize = new Sequelize(this.mysqlConfig.database, null, null, {
         dialect: 'sqlite',
@@ -182,9 +182,9 @@ class SequelizeHelper {
           // global[`debug`] && logger.info(sql)
         }
       })
-      console.log(`connecting sqlite: ${this.mysqlConfig.filename} ...`)
+      this.logger.info(`connecting sqlite: ${this.mysqlConfig.filename} ...`)
       await this.sequelize.authenticate()
-      console.log(`connection succeeded: ${this.mysqlConfig.filename}`)
+      this.logger.info(`connection succeeded: ${this.mysqlConfig.filename}`)
     } else {
       throw new Error(`dbType 有误。dbType: ${dbType}`)
     }
@@ -205,7 +205,7 @@ class SequelizeHelper {
    */
   async executeSqlFile(filename: string): Promise<any> {
     const sql = `BEGIN;${fs.readFileSync(filename).toString()}COMMIT;`
-    this.logger.info(`[sql] ${sql}`)
+    this.logger.debug(`[sql] ${sql}`)
     return await this.sequelize.query(sql, {
       raw: true
     })
@@ -213,7 +213,7 @@ class SequelizeHelper {
 
   async executeSql(sql: string): Promise<any> {
     const sql1 = `BEGIN;${sql}COMMIT;`
-    this.logger.info(`[sql] ${sql1}`)
+    this.logger.debug(`[sql] ${sql1}`)
     return await this.sequelize.query(sql1, {
       raw: true
     })
@@ -225,7 +225,7 @@ class SequelizeHelper {
    */
   async begin(): Promise<any> {
     const transaction = new this.sequelize.Transaction(this.sequelize)
-    this.logger.info(`[sql] [transactionId: ${transaction.id}] begin`)
+    this.logger.debug(`[sql] [transactionId: ${transaction.id}] begin`)
     await transaction.prepareEnvironment()
     return transaction
   }
@@ -237,7 +237,7 @@ class SequelizeHelper {
    */
   async commit(transaction: any): Promise<any> {
     if (!transaction.finished) {
-      this.logger.info(`[sql] [transactionId: ${transaction.id}] commit`)
+      this.logger.debug(`[sql] [transactionId: ${transaction.id}] commit`)
       return await transaction.commit()
     }
   }
@@ -249,7 +249,7 @@ class SequelizeHelper {
    */
   async rollback(transaction: any): Promise<any> {
     if (!transaction.finished) {
-      this.logger.info(`[sql] [transactionId: ${transaction.id}] rollback`)
+      this.logger.debug(`[sql] [transactionId: ${transaction.id}] rollback`)
       return await transaction.rollback().catch(() => { })
     }
   }
@@ -288,7 +288,7 @@ class SequelizeHelper {
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     await this.query(sql, opt)
     return true
   }
@@ -306,13 +306,13 @@ class SequelizeHelper {
 
     }
     const sql = `create database ${databaseName}`
-    this.logger.info(`[sql] ${sql}`)
+    this.logger.debug(`[sql] ${sql}`)
     return await this.query(sql)
   }
 
   async dropDatabase(databaseName: string): Promise<any> {
     const sql = `drop database ${databaseName}`
-    this.logger.info(`[sql] ${sql}`)
+    this.logger.debug(`[sql] ${sql}`)
     return await this.query(sql)
   }
 
@@ -633,7 +633,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.UPDATE,
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -651,7 +651,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.DELETE,
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -675,7 +675,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -693,7 +693,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -713,7 +713,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -737,7 +737,7 @@ class SequelizeHelper {
       type: this.sequelize.QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -765,7 +765,7 @@ class SequelizeHelper {
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -775,7 +775,7 @@ class SequelizeHelper {
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 
@@ -792,7 +792,7 @@ class SequelizeHelper {
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
-    this.logger.info(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
+    this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
     return await this.query(sql, opt)
   }
 }
