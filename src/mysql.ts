@@ -171,9 +171,9 @@ class SequelizeHelper {
         },
         timezone: '+00:00' // 设置写入的时间的时区
       })
-      this.logger.info(`连接mysql: ${this.mysqlConfig.host} 中...`)
+      console.log(`connecting mysql: ${this.mysqlConfig.host} ...`)
       await this.sequelize.authenticate()
-      this.logger.info(`mysql: ${this.mysqlConfig.host} 连接成功`)
+      console.log(`connection succeeded: ${this.mysqlConfig.host}`)
     } else if (dbType === 'sqlite') {
       this.sequelize = new Sequelize(this.mysqlConfig.database, null, null, {
         dialect: 'sqlite',
@@ -182,9 +182,9 @@ class SequelizeHelper {
           // global[`debug`] && logger.info(sql)
         }
       })
-      this.logger.info(`连接sqlite: ${this.mysqlConfig.filename} 中...`)
+      console.log(`connecting sqlite: ${this.mysqlConfig.filename} ...`)
       await this.sequelize.authenticate()
-      this.logger.info(`sqlite: ${this.mysqlConfig.filename} 连接成功`)
+      console.log(`connection succeeded: ${this.mysqlConfig.filename}`)
     } else {
       throw new Error(`dbType 有误。dbType: ${dbType}`)
     }
