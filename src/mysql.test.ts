@@ -11,7 +11,7 @@ describe('sequelizeHelper', () => {
       'username': 'root',
       'password': 'root',
       'database': 'test'
-    }, null)
+    }, console)
     await sequelizeHelper.init()
     // await sequelizeHelper.createDatabase('test', true)
   })
@@ -25,8 +25,7 @@ describe('sequelizeHelper', () => {
           mobile: `111`
         },
         update: {
-          id: `1`,
-          mobile: `11`,
+          mobile: `22`,
         }
       })
       console.error(results)
@@ -58,7 +57,7 @@ describe('sequelizeHelper', () => {
         select: `*`,
         from: `test`,
         where: {
-          user_id: `32452`,
+          mobile: `11`,
         }
       })
       console.error(results)
@@ -74,7 +73,7 @@ describe('sequelizeHelper', () => {
         sum: `id`,
         from: `test`,
         where: {
-          user_id: `32452`,
+          mobile: `32452`,
         }
       })
       console.error(results)
@@ -88,32 +87,31 @@ describe('sequelizeHelper', () => {
     try {
       const tran = await sequelizeHelper.begin()
       const results = await sequelizeHelper.selectBySql('select * from test', {}, tran)
-      await sequelizeHelper.commit(tran)
       console.error(results)
+      await sequelizeHelper.commit(tran)
     } catch (err) {
       console.error(err)
       assert.throws(() => { }, err)
     }
   })
 
-  after(async () => {
-    // await sequelizeHelper.dropDatabase('test')
-    await sequelizeHelper.close()
+  after(() => {
+    sequelizeHelper.close()
   })
 
-  // it('createDatabase', async () => {
-  //   try {
-  //     await sequelizeHelper.createDatabase('test1', true)
-  //     await sequelizeHelper.query('use test;')
-  //     // logger.error(result)
-  //   } catch (err) {
-  //     logger.error(err)
-  //     assert.throws(() => {}, err)
-  //   } finally {
-  //     await sequelizeHelper.dropDatabase('test1')
-  //   }
-  // })
-  //
+  it('createDatabase', async () => {
+    try {
+      await sequelizeHelper.createDatabase('test1', true)
+      await sequelizeHelper.query('use test;')
+      // logger.error(result)
+    } catch (err) {
+      console.error(err)
+      assert.throws(() => {}, err)
+    } finally {
+      await sequelizeHelper.dropDatabase('test1')
+    }
+  })
+  
   // it('createBySql创建数据库', async () => {
   //   try {
   //     const bool = await sequelizeHelper.createBySql(`
@@ -169,8 +167,7 @@ describe('sequelizeHelper', () => {
       const result = await sequelizeHelper.insert(
         {
           insert: {
-            user_id: 56,
-            name: `haha`,
+            mobile: `haha`,
           },
           from: 'test'
         }

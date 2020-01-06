@@ -1,5 +1,5 @@
 import fs from 'fs'
-import Sequelize from 'sequelize'
+import { Sequelize, Transaction, QueryTypes } from "sequelize"
 
 interface MysqlConfigration {
   host: string,
@@ -122,7 +122,7 @@ interface LoggerInterface {
 
 class SequelizeHelper {
   private mysqlConfig: MysqlConfigration
-  sequelize: any
+  sequelize: Sequelize
   private logger: LoggerInterface
 
   constructor(mysqlConfig: MysqlConfigration, logger: LoggerInterface = console) {
@@ -150,8 +150,8 @@ class SequelizeHelper {
         port: this.mysqlConfig.port || 3306,
         dialect: 'mysql',
         pool: {
-          max: 30,
-          min: 0,
+          max: 20,
+          min: 2,
           idle: 10000,
           acquire: 30000
         },
@@ -161,7 +161,6 @@ class SequelizeHelper {
           paranoid: false,
           freezeTableName: true
         },
-        operatorsAliases: Sequelize.Op && Sequelize.Op.Aliases,
         logging: (sql) => {
           // global[`debug`] && logger.info(sql)
         },
@@ -223,8 +222,8 @@ class SequelizeHelper {
    * 开启事务
    * @returns {Promise<*|Transaction>}
    */
-  async begin(): Promise<any> {
-    const transaction = new this.sequelize.Transaction(this.sequelize)
+  async begin(): Promise<Transaction> {
+    const transaction = await this.sequelize.transaction()
     this.logger.debug(`[sql] [transactionId: ${transaction.id}] begin`)
     await transaction.prepareEnvironment()
     return transaction
@@ -263,7 +262,7 @@ class SequelizeHelper {
    */
   async selectBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any[]> {
     const opt = {
-      type: this.sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
@@ -284,7 +283,7 @@ class SequelizeHelper {
    */
   async createBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<boolean> {
     const opt = {
-      type: this.sequelize.QueryTypes.UPDATE,
+      type: QueryTypes.UPDATE,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
@@ -339,7 +338,7 @@ class SequelizeHelper {
       ${await this._assembleParam('forUpdate', opts.forUpdate)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -383,7 +382,7 @@ class SequelizeHelper {
       ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -399,7 +398,7 @@ class SequelizeHelper {
    * @returns {Promise<void>}
    */
   async close(): Promise<any> {
-    return this.sequelize && this.sequelize.close()
+    return this.sequelize && await this.sequelize.close()
   }
 
   /**
@@ -421,7 +420,7 @@ class SequelizeHelper {
       ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -600,7 +599,7 @@ class SequelizeHelper {
       ${forUpdate}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.SELECT,
+      type: QueryTypes.SELECT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -630,7 +629,7 @@ class SequelizeHelper {
       ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.UPDATE,
+      type: QueryTypes.UPDATE,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -648,7 +647,7 @@ class SequelizeHelper {
       ${await this._assembleParam('where', opts.where)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.DELETE,
+      type: QueryTypes.DELETE,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -672,7 +671,7 @@ class SequelizeHelper {
       ${await this._assembleParam('insert', opts.insert)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.INSERT,
+      type: QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -690,7 +689,7 @@ class SequelizeHelper {
       ${await this._assembleParam('insert', opts.insert)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.INSERT,
+      type: QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -710,7 +709,7 @@ class SequelizeHelper {
       ${await this._assembleParam('update', opts.update)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.INSERT,
+      type: QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -734,7 +733,7 @@ class SequelizeHelper {
       ${await this._assembleParam('batchInsert', opts.batchInsert)}
     `
     const opt = {
-      type: this.sequelize.QueryTypes.INSERT,
+      type: QueryTypes.INSERT,
     }
     transaction && (opt['transaction'] = transaction)
     this.logger.debug(`[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ''} ${sql}`)
@@ -761,7 +760,7 @@ class SequelizeHelper {
    */
   async updateBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
     const opt = {
-      type: this.sequelize.QueryTypes.UPDATE,
+      type: QueryTypes.UPDATE,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
@@ -771,7 +770,7 @@ class SequelizeHelper {
 
   async deleteBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
     const opt = {
-      type: this.sequelize.QueryTypes.DELETE,
+      type: QueryTypes.DELETE,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
@@ -788,7 +787,7 @@ class SequelizeHelper {
    */
   async insertBySql(sql: string, replacements: object = {}, transaction: any = null): Promise<any> {
     const opt = {
-      type: this.sequelize.QueryTypes.INSERT,
+      type: QueryTypes.INSERT,
       replacements: replacements
     }
     transaction && (opt['transaction'] = transaction)
