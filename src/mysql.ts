@@ -153,7 +153,8 @@ class SequelizeHelper {
           max: 20,
           min: 2,
           idle: 10000,
-          acquire: 30000
+          acquire: 50000,
+          evict: 10000,
         },
         define: {
           timestamps: true,
