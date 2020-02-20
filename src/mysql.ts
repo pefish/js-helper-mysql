@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { Sequelize, Transaction, QueryTypes } from "sequelize"
+import { Sequelize, Transaction, QueryTypes, PoolOptions } from "sequelize"
 
 interface MysqlConfigration {
   host: string,
@@ -7,7 +7,8 @@ interface MysqlConfigration {
   username: string,
   password: string,
   database: string,
-  filename?: string
+  filename?: string,
+  pool?: PoolOptions,
 }
 
 interface SelectOpt {
@@ -150,11 +151,11 @@ class SequelizeHelper {
         port: this.mysqlConfig.port || 3306,
         dialect: 'mysql',
         pool: {
-          max: 20,
-          min: 2,
+          max: 30,
+          min: 5,
           idle: 10000,
-          acquire: 50000,
-          evict: 10000,
+          acquire: 100000,
+          ...this.mysqlConfig.pool,
         },
         define: {
           timestamps: true,

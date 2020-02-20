@@ -1,6 +1,6 @@
 {
   "name": "@pefish/js-helper-mysql",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "main": "./lib/mysql.js",
   "types": "./types/mysql.d.ts",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "mysql2": "^2.1.0",
-    "sequelize": "^5.21.3"
+    "sequelize": "^5.21.4"
   },
   "devDependencies": {
     "@pefish/js-util-starter": "^0.0.8",
