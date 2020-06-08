@@ -470,6 +470,7 @@ class SequelizeHelper {
             where += `and ${key} = '${this.regularString(value as string | number)}' `
             continue
           }
+          throw new Error(`where key error - ${key}`)
         }
         return where
       case 'order':
