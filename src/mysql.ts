@@ -90,31 +90,14 @@ interface DeleteOpt {
   if?: boolean | (() => boolean);
 }
 
-interface UpdateOrInsertOpt {
-  updateOrInsert: {
-    [x: string]: any;
-  };
-  from: string;
-  where:
-    | string
-    | {
-        [x: string]: any;
-      };
-  if?: boolean | (() => boolean);
-}
-
-interface InsertOpt {
-  insert: {
-    [x: string]: any;
-  };
+interface InsertOpt<T> {
+  insert: T;
   from: string;
   if?: boolean | (() => boolean);
 }
 
-interface InsertOnDuplicateKeyOpt {
-  insert: {
-    [x: string]: any;
-  };
+interface InsertOnDuplicateKeyOpt<T> {
+  insert: T;
   update: {
     [x: string]: any;
   };
@@ -769,7 +752,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>} [id, 影响条数]
    */
-  async insert(opts: InsertOpt, transaction: any = null): Promise<any> {
+  async insert<T>(opts: InsertOpt<T>, transaction: any = null): Promise<any> {
     if (
       opts.if !== undefined &&
       opts.if !== true &&
@@ -793,7 +776,10 @@ class SequelizeHelper {
     return await this.query(sql, opt as any);
   }
 
-  async insertIgnore(opts: InsertOpt, transaction: any = null): Promise<any> {
+  async insertIgnore<T>(
+    opts: InsertOpt<T>,
+    transaction: any = null
+  ): Promise<any> {
     if (
       opts.if !== undefined &&
       opts.if !== true &&
@@ -817,8 +803,8 @@ class SequelizeHelper {
     return await this.query(sql, opt as any);
   }
 
-  async insertOnDuplicateKey(
-    opts: InsertOnDuplicateKeyOpt,
+  async insertOnDuplicateKey<T>(
+    opts: InsertOnDuplicateKeyOpt<T>,
     transaction: any = null
   ): Promise<any> {
     if (
