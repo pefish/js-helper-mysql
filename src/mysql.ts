@@ -222,7 +222,7 @@ class SequelizeHelper {
    * @param filename {string} 绝对路径
    * @returns {Promise<void>}
    */
-  async executeSqlFile(filename: string): Promise<any> {
+  async executeSqlFile<T>(filename: string): Promise<T> {
     const sql = `BEGIN;${fs.readFileSync(filename).toString()}COMMIT;`;
     this.logger.debug(`[sql] ${sql}`);
     return await this.sequelize.query(sql, {
@@ -230,7 +230,7 @@ class SequelizeHelper {
     });
   }
 
-  async executeSql(sql: string): Promise<any> {
+  async executeSql<T>(sql: string): Promise<T> {
     const sql1 = `BEGIN;${sql}COMMIT;`;
     this.logger.debug(`[sql] ${sql1}`);
     return await this.sequelize.query(sql1, {
@@ -280,11 +280,11 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectBySql(
+  async selectBySql<T>(
     sql: string,
     replacements: object = {},
     transaction: any = null
-  ): Promise<any[]> {
+  ): Promise<T[]> {
     const opt = {
       type: QueryTypes.SELECT,
       replacements: replacements,
@@ -354,7 +354,7 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async select(opts: SelectOpt, transaction: any = null): Promise<any[]> {
+  async select<T>(opts: SelectOpt, transaction: any = null): Promise<T[]> {
     if (
       opts.if !== undefined &&
       opts.if !== true &&
@@ -394,11 +394,11 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async selectOne(
+  async selectOne<T>(
     opts: SelectOpt,
     transaction: any = null
-  ): Promise<any | null> {
-    const results = await this.select(opts, transaction);
+  ): Promise<T | null> {
+    const results = await this.select<T>(opts, transaction);
     if (results.length === 0) {
       return null;
     }
@@ -652,10 +652,10 @@ class SequelizeHelper {
    * @param transaction {Transaction} 事务实例, default: null
    * @returns {Promise<*>}
    */
-  async unionSelect(
+  async unionSelect<T>(
     opts: UnionSelectOpt,
     transaction: any = null
-  ): Promise<any[]> {
+  ): Promise<T[]> {
     if (
       opts.if !== undefined &&
       opts.if !== true &&
