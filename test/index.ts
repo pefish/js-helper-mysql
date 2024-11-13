@@ -18,11 +18,11 @@ Starter.startAsync(async () => {
       init_token_amount: "111",
       current_token_amount: "111",
       init_timestamp: 1132231,
-      records: JSON.stringify([
+      records: [
         {
           aaa: "dvsdf",
         },
-      ]),
+      ],
     },
     from: "sol_pos",
   });

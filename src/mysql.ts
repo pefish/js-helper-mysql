@@ -196,8 +196,15 @@ class SequelizeHelper {
       : this.sequelize.query(sql);
   }
 
-  regularString(str: string | number): string {
-    return str.toString().replace(/\\/g, "\\\\").replace(/\'/g, "\\'");
+  regularString(str: any): string {
+    switch (Object.prototype.toString.call(str)) {
+      case "[object Object]":
+        return JSON.stringify(str);
+      case "[object Array]":
+        return JSON.stringify(str);
+      default:
+        return str.toString().replace(/\\/g, "\\\\").replace(/\'/g, "\\'");
+    }
   }
 
   /**
@@ -600,7 +607,7 @@ class SequelizeHelper {
           }
           const fields = Object.keys(data).join(","),
             values = Object.values(data)
-              .map((val) => `'${this.regularString(val as string | number)}'`)
+              .map((val: any) => `'${this.regularString(val)}'`)
               .join(",");
           insert = `(${fields}) values (${values})`;
         }
