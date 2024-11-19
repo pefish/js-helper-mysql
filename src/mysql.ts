@@ -1,8 +1,9 @@
+import { ILogger } from "@pefish/js-logger";
 import fs from "fs";
 import { QueryOptions } from "mysql2";
 import { PoolOptions, QueryTypes, Sequelize, Transaction } from "sequelize";
 
-interface MysqlConfigration {
+export interface MysqlConfigration {
   host: string;
   port?: number;
   username: string;
@@ -111,49 +112,32 @@ interface BatchInsertOpt {
   if?: boolean | (() => boolean);
 }
 
-interface LoggerInterface {
-  debug(...msg): void;
-
-  info(...msg): void;
-
-  warn(...msg): void;
-
-  error(...msg): void;
-}
-
-class SequelizeHelper {
-  private mysqlConfig: MysqlConfigration;
+export class Mysql {
   sequelize: Sequelize;
-  private logger: LoggerInterface;
+  private logger: ILogger;
 
-  constructor(
-    mysqlConfig: MysqlConfigration,
-    logger: LoggerInterface = console
-  ) {
-    this.mysqlConfig = mysqlConfig;
-    this.sequelize = null;
-    this.logger = logger;
-  }
-
-  /**
-   * 加载models
-   */
-  async init(dbType: string = "mysql"): Promise<void> {
+  static async new(
+    logger: ILogger,
+    config: MysqlConfigration,
+    dbType: string = "mysql"
+  ): Promise<Mysql> {
+    const mysqlInstance = new Mysql();
+    mysqlInstance.logger = logger;
     if (dbType === "mysql") {
-      this.sequelize = new Sequelize(
-        this.mysqlConfig.database,
-        this.mysqlConfig.username,
-        this.mysqlConfig.password,
+      mysqlInstance.sequelize = new Sequelize(
+        config.database,
+        config.username,
+        config.password,
         {
-          host: this.mysqlConfig.host,
-          port: this.mysqlConfig.port || 3306,
+          host: config.host,
+          port: config.port || 3306,
           dialect: "mysql",
           pool: {
             max: 30,
             min: 5,
             idle: 10000,
             acquire: 100000,
-            ...this.mysqlConfig.pool,
+            ...config.pool,
           },
           define: {
             timestamps: true,
@@ -171,23 +155,25 @@ class SequelizeHelper {
           timezone: "+00:00", // 设置写入的时间的时区
         }
       );
-      this.logger.info(`connecting mysql: ${this.mysqlConfig.host} ...`);
-      await this.sequelize.authenticate();
-      this.logger.info(`connection succeeded: ${this.mysqlConfig.host}`);
+      mysqlInstance.logger.info(`connecting mysql: ${config.host} ...`);
+      await mysqlInstance.sequelize.authenticate();
+      mysqlInstance.logger.info(`connection succeeded: ${config.host}`);
     } else if (dbType === "sqlite") {
-      this.sequelize = new Sequelize(this.mysqlConfig.database, null, null, {
+      mysqlInstance.sequelize = new Sequelize(config.database, null, null, {
         dialect: "sqlite",
-        storage: this.mysqlConfig.filename,
+        storage: config.filename,
         logging: (sql) => {
           // global[`debug`] && logger.info(sql)
         },
       });
-      this.logger.info(`connecting sqlite: ${this.mysqlConfig.filename} ...`);
-      await this.sequelize.authenticate();
-      this.logger.info(`connection succeeded: ${this.mysqlConfig.filename}`);
+      mysqlInstance.logger.info(`connecting sqlite: ${config.filename} ...`);
+      await mysqlInstance.sequelize.authenticate();
+      mysqlInstance.logger.info(`connection succeeded: ${config.filename}`);
     } else {
       throw new Error(`dbType 有误。dbType: ${dbType}`);
     }
+
+    return mysqlInstance;
   }
 
   async query(sql: string, opt: QueryOptions = null): Promise<any> {
@@ -945,5 +931,3 @@ class SequelizeHelper {
     return await this.query(sql, opt as any);
   }
 }
-
-export default SequelizeHelper;
