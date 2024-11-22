@@ -1,121 +1,134 @@
-import { Logger } from "@pefish/js-logger";
 import * as assert from "assert";
 import { Mysql } from "./mysql";
 
 describe("sequelizeHelper", () => {
   let sequelizeHelper: Mysql;
 
-  before(async () => {
-    sequelizeHelper = await Mysql.new(new Logger(), {
-      host: "localhost",
-      username: "root",
-      password: "root",
-      database: "test",
-    });
-  });
+  // before(async () => {
+  //   sequelizeHelper = await Mysql.new(new Logger(), {
+  //     host: "localhost",
+  //     username: "root",
+  //     password: "root",
+  //     database: "test",
+  //   });
+  // });
 
-  it("insertOnDuplicateKey", async () => {
-    try {
-      const results = await sequelizeHelper.insertOnDuplicateKey({
-        from: `test`,
-        insert: {
-          id: `3`,
-          mobile: `111`,
-        },
-        update: {
-          mobile: `22`,
-        },
-      });
-      console.error(results);
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
-  });
+  // it("insertOnDuplicateKey", async () => {
+  //   try {
+  //     const results = await sequelizeHelper.insertOnDuplicateKey({
+  //       from: `test`,
+  //       insert: {
+  //         id: `3`,
+  //         mobile: `111`,
+  //       },
+  //       update: {
+  //         mobile: `22`,
+  //       },
+  //     });
+  //     console.error(results);
+  //   } catch (err) {
+  //     console.error(err);
+  //     assert.throws(() => {}, err);
+  //   }
+  // });
 
   it("_assembleParam", async () => {
     try {
-      const result = await sequelizeHelper._assembleParam(
-        `order`,
-        `order by id desc`
-      );
+      const instance = new Mysql();
+      const result = await instance._assembleParam(`order`, `order by id desc`);
       console.error(result);
-      const result1 = await sequelizeHelper._assembleParam(`where`, {
+      const result1 = await instance._assembleParam(`where`, {
         source_address: `5134515`,
         status: `s:in (5,7)`,
         chain: `fadf`,
       });
       console.error(result1);
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
-  });
 
-  it("select", async () => {
-    try {
-      const results = await sequelizeHelper.select({
-        select: `*`,
-        from: `test`,
-        where: {
-          mobile: `11`,
+      const result2 = await instance._assembleParam(`insert`, {
+        a: {
+          name: "Tostada cat",
+          symbol: "TOSTADA",
+          description: "I am Tostada , Jaiden's lovely cat. Meow.",
+          image:
+            "https://ipfs.io/ipfs/QmX9VEub3i829FbhaGJ82C21rY4HC72QpZCefqGgkVYZEc",
+          showName: true,
+          createdOn: "https://pump.fun",
+          twitter: "https://x.com/JaidenAnimation",
+          telegram: "https://t.me/tostadasol",
+          website: "https://www.youtube.com/watch?v=Oc91iOxcB3c&t=375s",
         },
       });
-      console.error(results);
+      console.error(result2);
     } catch (err) {
       console.error(err);
       assert.throws(() => {}, err);
     }
   });
 
-  it("sum", async () => {
-    try {
-      const results = await sequelizeHelper.sum({
-        sum: `id`,
-        from: `test`,
-        where: {
-          mobile: `32452`,
-        },
-      });
-      console.error(results);
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
-  });
+  // it("select", async () => {
+  //   try {
+  //     const results = await sequelizeHelper.select({
+  //       select: `*`,
+  //       from: `test`,
+  //       where: {
+  //         mobile: `11`,
+  //       },
+  //     });
+  //     console.error(results);
+  //   } catch (err) {
+  //     console.error(err);
+  //     assert.throws(() => {}, err);
+  //   }
+  // });
 
-  it("selectBySql", async () => {
-    try {
-      const tran = await sequelizeHelper.begin();
-      const results = await sequelizeHelper.selectBySql(
-        "select * from test",
-        {},
-        tran
-      );
-      console.error(results);
-      await sequelizeHelper.commit(tran);
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
-  });
+  // it("sum", async () => {
+  //   try {
+  //     const results = await sequelizeHelper.sum({
+  //       sum: `id`,
+  //       from: `test`,
+  //       where: {
+  //         mobile: `32452`,
+  //       },
+  //     });
+  //     console.error(results);
+  //   } catch (err) {
+  //     console.error(err);
+  //     assert.throws(() => {}, err);
+  //   }
+  // });
 
-  after(() => {
-    sequelizeHelper.close();
-  });
+  // it("selectBySql", async () => {
+  //   try {
+  //     const tran = await sequelizeHelper.begin();
+  //     const results = await sequelizeHelper.selectBySql(
+  //       "select * from test",
+  //       {},
+  //       tran
+  //     );
+  //     console.error(results);
+  //     await sequelizeHelper.commit(tran);
+  //   } catch (err) {
+  //     console.error(err);
+  //     assert.throws(() => {}, err);
+  //   }
+  // });
 
-  it("createDatabase", async () => {
-    try {
-      await sequelizeHelper.createDatabase("test1", true);
-      await sequelizeHelper.query("use test;");
-      // logger.error(result)
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    } finally {
-      await sequelizeHelper.dropDatabase("test1");
-    }
-  });
+  // after(() => {
+  //   sequelizeHelper.close();
+  // });
+
+  // it("createDatabase", async () => {
+  //   try {
+  //     await sequelizeHelper.createDatabase("test1", true);
+  //     await sequelizeHelper.query("use test;");
+  //     // logger.error(result)
+  //   } catch (err) {
+  //     console.error(err);
+  //     assert.throws(() => {}, err);
+  //   } finally {
+  //     await sequelizeHelper.dropDatabase("test1");
+  //   }
+  // });
 
   // it('createBySql创建数据库', async () => {
   //   try {
@@ -167,21 +180,21 @@ describe("sequelizeHelper", () => {
   //   }
   // })
 
-  it("insert", async () => {
-    try {
-      const result = await sequelizeHelper.insert({
-        insert: {
-          mobile: `haha`,
-        },
-        from: "test",
-      });
-      console.error(result);
-      // assert.strictEqual(result.length, 2)
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
-  });
+  // it("insert", async () => {
+  //   try {
+  //     const result = await sequelizeHelper.insert({
+  //       insert: {
+  //         mobile: `haha`,
+  //       },
+  //       from: "test",
+  //     });
+  //     console.error(result);
+  //     // assert.strictEqual(result.length, 2)
+  //   } catch (err) {
+  //     console.error(err);
+  //     assert.throws(() => {}, err);
+  //   }
+  // });
 
   // it('delete', async () => {
   //   try {

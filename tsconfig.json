@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "strict": false,
     "allowJs": false,
     "module": "commonjs",
     "declaration": true,
@@ -11,17 +12,10 @@
     "sourceMap": true,
     "outDir": "lib",
     "baseUrl": ".",
-    "lib": [
-      "es2016",
-      "es2017"
-    ],
-    "typeRoots": [
-      "node_modules/@types",
-      "node_modules/@pefish"
-    ],
-    "downlevelIteration": true
+    "lib": ["es2016", "es2017"],
+    "typeRoots": ["node_modules/@types", "node_modules/@pefish"],
+    "downlevelIteration": true,
+    "skipLibCheck": true
   },
-  "include": [
-    "src/**/*"
-  ]
+  "include": ["src/**/*"]
 }

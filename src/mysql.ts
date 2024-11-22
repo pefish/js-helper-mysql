@@ -159,7 +159,7 @@ export class Mysql {
       await mysqlInstance.sequelize.authenticate();
       mysqlInstance.logger.info(`connection succeeded: ${config.host}`);
     } else if (dbType === "sqlite") {
-      mysqlInstance.sequelize = new Sequelize(config.database, null, null, {
+      mysqlInstance.sequelize = new Sequelize(config.database, "", "", {
         dialect: "sqlite",
         storage: config.filename,
         logging: (sql) => {
@@ -183,14 +183,14 @@ export class Mysql {
   }
 
   regularString(str: any): string {
+    let result = str.toString();
     switch (Object.prototype.toString.call(str)) {
       case "[object Object]":
-        return JSON.stringify(str);
+        result = JSON.stringify(str);
       case "[object Array]":
-        return JSON.stringify(str);
-      default:
-        return str.toString().replace(/\\/g, "\\\\").replace(/\'/g, "\\'");
+        result = JSON.stringify(str);
     }
+    return result.replace(/\\/g, "\\\\").replace(/\'/g, "\\'");
   }
 
   /**
