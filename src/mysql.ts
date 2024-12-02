@@ -491,10 +491,9 @@ export class Mysql {
           if (value === null || value === undefined) {
             continue;
           }
+          const valueType = Object.prototype.toString.call(value) as string;
           if (
-            (Object.prototype.toString.call(value) as string).endsWith(
-              `String]`
-            ) &&
+            valueType.endsWith(`String]`) &&
             (value as string).startsWith(`s:`)
           ) {
             value = (value as string).substring(2);
@@ -503,17 +502,14 @@ export class Mysql {
             } ${value} `;
             continue;
           }
-          if (
-            (Object.prototype.toString.call(value) as string).endsWith(
-              `String]`
-            ) ||
-            (Object.prototype.toString.call(value) as string).endsWith(
-              `Number]`
-            )
-          ) {
+          if (valueType.endsWith(`String]`) || valueType.endsWith(`Number]`)) {
             where += `and ${key} = '${this.regularString(
               value as string | number
             )}' `;
+            continue;
+          }
+          if (valueType.endsWith(`Array]`)) {
+            where += `and ${key} in (${(value as any[]).join(",")}) `;
             continue;
           }
           throw new Error(`where key error - ${key}`);

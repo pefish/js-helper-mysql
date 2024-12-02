@@ -42,7 +42,7 @@ describe("sequelizeHelper", () => {
         status: `s:in (5,7)`,
         chain: `fadf`,
       });
-      console.error(result1);
+      console.error("result1", result1);
 
       const result2 = await instance._assembleParam(`insert`, {
         a: {
@@ -58,7 +58,14 @@ describe("sequelizeHelper", () => {
           website: "https://www.youtube.com/watch?v=Oc91iOxcB3c&t=375s",
         },
       });
-      console.error(result2);
+      console.error("result2", result2);
+
+      const result3 = await instance._assembleParam(`where`, {
+        source_address: `5134515`,
+        status: [5, 7],
+        chain: `fadf`,
+      });
+      console.error("result3", result3);
     } catch (err) {
       console.error(err);
       assert.throws(() => {}, err);
