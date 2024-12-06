@@ -16,7 +16,7 @@ export interface MysqlConfigration {
 interface SelectOpt {
   select: string | string[];
   from: string;
-  where?: WhereDataType | null | undefined;
+  where?: WhereDataType | string | null | undefined;
   order?: string | [string, string][];
   limit?: string | number[];
   groupBy?: string | string[];
@@ -27,13 +27,13 @@ interface SelectOpt {
 interface SumOpt {
   sum: string;
   from: string;
-  where?: WhereDataType | null | undefined;
+  where?: WhereDataType | string | null | undefined;
   if?: boolean | (() => boolean);
 }
 
 interface CountOpt {
   from: string;
-  where: WhereDataType | null | undefined;
+  where: WhereDataType | string | null | undefined;
   if?: boolean | (() => boolean);
 }
 
@@ -41,7 +41,7 @@ interface UnionSelectOpt {
   from: string;
   to: string;
   unionType: string;
-  where?: WhereDataType | null | undefined;
+  where?: WhereDataType | string | null | undefined;
   order?: string | [string, string][];
   limit?: string | number[];
   select: string | string[];
@@ -57,13 +57,13 @@ interface UpdateOpt {
         [x: string]: any;
       };
   from: string;
-  where: WhereDataType | null | undefined;
+  where: WhereDataType | string | null | undefined;
   if?: boolean | (() => boolean);
 }
 
 interface DeleteOpt {
   from: string;
-  where: WhereDataType | null | undefined;
+  where: WhereDataType | string | null | undefined;
   if?: boolean | (() => boolean);
 }
 
@@ -88,17 +88,11 @@ interface BatchInsertOpt {
   if?: boolean | (() => boolean);
 }
 
+type WhereObjectType = { [x: string]: string | number | (string | number)[] };
+
 interface WhereDataType {
-  and?:
-    | { [x: string]: string | number | (string | number)[] }
-    | string
-    | null
-    | undefined;
-  or?:
-    | { [x: string]: string | number | (string | number)[] }
-    | string
-    | null
-    | undefined;
+  and?: WhereObjectType | string | null | undefined; // 表示 WhereObjectType 中全是 and 的关系
+  or?: WhereObjectType | string | null | undefined;
 }
 
 export class Mysql {
@@ -493,7 +487,7 @@ export class Mysql {
       if (orValueType === "String") {
         orWhereStr = orValue as string;
       } else if (orValueType === "Object") {
-        orWhereStr = _assembleWhereObject(orValue as Object).join(" and ");
+        orWhereStr = _assembleWhereObject(orValue as Object).join(" or ");
       }
     }
 
@@ -502,7 +496,7 @@ export class Mysql {
     }
 
     if (andWhereStr && orWhereStr) {
-      return `where (${andWhereStr}) or (${orWhereStr})`;
+      return `where (${andWhereStr}) and (${orWhereStr})`;
     }
 
     return `where ${andWhereStr || orWhereStr}`;

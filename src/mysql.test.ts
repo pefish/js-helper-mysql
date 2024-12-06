@@ -95,7 +95,6 @@ b = 3
         and: {
           source_address: `5134515`,
           status: `s:in (5,7)`,
-          chain: `fadf`,
         },
       });
       console.error("result1", result1);
@@ -107,7 +106,7 @@ b = 3
           chain: `fadf`,
         },
       });
-      console.error("result2", result1);
+      console.error("result2", result2);
 
       const result3 = await instance._assembleWhere({
         and: {
