@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import { Logger } from "@pefish/js-logger";
 import { Mysql } from "./mysql";
 
 describe("sequelizeHelper", () => {
@@ -33,107 +33,97 @@ describe("sequelizeHelper", () => {
   // });
 
   it("_assembleParam", async () => {
-    try {
-      return;
-      const instance = new Mysql();
-      const result = await instance._assembleParam(`order`, `order by id desc`);
-      console.error(result);
-      const result1 = await instance._assembleParam(`where`, {
+    return;
+    const instance = new Mysql(new Logger(), null as any);
+    const result = await instance._assembleParam(`order`, `order by id desc`);
+    console.error(result);
+    const result1 = await instance._assembleParam(`where`, {
+      source_address: `5134515`,
+      status: `s:in (5,7)`,
+      chain: `fadf`,
+    });
+    console.error("result1", result1);
+
+    const result2 = await instance._assembleParam(`insert`, {
+      a: {
+        name: "Tostada cat",
+        symbol: "TOSTADA",
+        description: "I am Tostada , Jaiden's lovely cat. Meow.",
+        image:
+          "https://ipfs.io/ipfs/QmX9VEub3i829FbhaGJ82C21rY4HC72QpZCefqGgkVYZEc",
+        showName: true,
+        createdOn: "https://pump.fun",
+        twitter: "https://x.com/JaidenAnimation",
+        telegram: "https://t.me/tostadasol",
+        website: "https://www.youtube.com/watch?v=Oc91iOxcB3c&t=375s",
+      },
+    });
+    console.error("result2", result2);
+
+    const result3 = await instance._assembleParam(`where`, {
+      source_address: `5134515`,
+      status: [5, 7],
+      chain: `fadf`,
+      c: 4,
+      or: {
+        a: "a",
+        b: 4,
+      },
+    });
+    console.error("result3", result3);
+
+    const result4 = await instance._assembleParam(
+      `where`,
+      `
+a = "a"
+and
+b = 3
+`
+    );
+    console.error("result4", result4);
+  });
+
+  it("_assembleParam", async () => {
+    const instance = new Mysql(new Logger(), null as any);
+    const result1 = instance._assembleWhere({
+      and: {
+        source_address: `5134515`,
+        status: `s:in (5,7)`,
+      },
+    });
+    console.error("result1", result1);
+
+    const result2 = instance._assembleWhere({
+      or: {
         source_address: `5134515`,
         status: `s:in (5,7)`,
         chain: `fadf`,
-      });
-      console.error("result1", result1);
+      },
+    });
+    console.error("result2", result2);
 
-      const result2 = await instance._assembleParam(`insert`, {
-        a: {
-          name: "Tostada cat",
-          symbol: "TOSTADA",
-          description: "I am Tostada , Jaiden's lovely cat. Meow.",
-          image:
-            "https://ipfs.io/ipfs/QmX9VEub3i829FbhaGJ82C21rY4HC72QpZCefqGgkVYZEc",
-          showName: true,
-          createdOn: "https://pump.fun",
-          twitter: "https://x.com/JaidenAnimation",
-          telegram: "https://t.me/tostadasol",
-          website: "https://www.youtube.com/watch?v=Oc91iOxcB3c&t=375s",
-        },
-      });
-      console.error("result2", result2);
-
-      const result3 = await instance._assembleParam(`where`, {
+    const result3 = await instance._assembleWhere({
+      and: {
         source_address: `5134515`,
         status: [5, 7],
         chain: `fadf`,
         c: 4,
-        or: {
-          a: "a",
-          b: 4,
-        },
-      });
-      console.error("result3", result3);
+      },
+      or: {
+        a: "a",
+        b: 4,
+      },
+    });
+    console.error("result3", result3);
 
-      const result4 = await instance._assembleParam(
-        `where`,
-        `
+    const result4 = await instance._assembleWhere(
+      `
 a = "a"
 and
 b = 3
 `
-      );
-      console.error("result4", result4);
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
-  });
-
-  it("_assembleParam", async () => {
-    try {
-      const instance = new Mysql();
-      const result1 = instance._assembleWhere({
-        and: {
-          source_address: `5134515`,
-          status: `s:in (5,7)`,
-        },
-      });
-      console.error("result1", result1);
-
-      const result2 = instance._assembleWhere({
-        or: {
-          source_address: `5134515`,
-          status: `s:in (5,7)`,
-          chain: `fadf`,
-        },
-      });
-      console.error("result2", result2);
-
-      const result3 = await instance._assembleWhere({
-        and: {
-          source_address: `5134515`,
-          status: [5, 7],
-          chain: `fadf`,
-          c: 4,
-        },
-        or: {
-          a: "a",
-          b: 4,
-        },
-      });
-      console.error("result3", result3);
-
-      const result4 = await instance._assembleWhere(
-        `
-a = "a"
-and
-b = 3
-`
-      );
-      console.error("result4", result4);
-    } catch (err) {
-      console.error(err);
-      assert.throws(() => {}, err);
-    }
+    );
+    console.error("result4", result4);
   });
 
   // it("select", async () => {

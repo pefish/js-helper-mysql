@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
-    "strict": false,
+    "strict": true,
     "allowJs": false,
     "module": "commonjs",
     "declaration": true,
     "declarationDir": "./types",
     "esModuleInterop": true,
     "target": "es5",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "moduleResolution": "node",
     "sourceMap": true,
     "outDir": "lib",

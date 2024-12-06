@@ -9,7 +9,6 @@ export interface MysqlConfigration {
   username: string;
   password: string;
   database: string;
-  filename?: string;
   pool?: PoolOptions;
 }
 
@@ -96,18 +95,22 @@ interface WhereDataType {
 }
 
 export class Mysql {
-  sequelize: Sequelize;
+  public sequelize: Sequelize;
   private logger: ILogger;
+
+  constructor(logger: ILogger, sequelize: Sequelize) {
+    this.logger = logger;
+    this.sequelize = sequelize;
+  }
 
   static async new(
     logger: ILogger,
     config: MysqlConfigration,
     dbType: string = "mysql"
   ): Promise<Mysql> {
-    const mysqlInstance = new Mysql();
-    mysqlInstance.logger = logger;
+    let sequelize: Sequelize;
     if (dbType === "mysql") {
-      mysqlInstance.sequelize = new Sequelize(
+      sequelize = new Sequelize(
         config.database,
         config.username,
         config.password,
@@ -138,28 +141,26 @@ export class Mysql {
           timezone: "+00:00", // 设置写入的时间的时区
         }
       );
-      mysqlInstance.logger.info(`connecting mysql: ${config.host} ...`);
-      await mysqlInstance.sequelize.authenticate();
-      mysqlInstance.logger.info(`connection succeeded: ${config.host}`);
     } else if (dbType === "sqlite") {
-      mysqlInstance.sequelize = new Sequelize(config.database, "", "", {
+      sequelize = new Sequelize(config.database, "", "", {
         dialect: "sqlite",
-        storage: config.filename,
+        storage: config.host,
         logging: (sql) => {
           // global[`debug`] && logger.info(sql)
         },
       });
-      mysqlInstance.logger.info(`connecting sqlite: ${config.filename} ...`);
-      await mysqlInstance.sequelize.authenticate();
-      mysqlInstance.logger.info(`connection succeeded: ${config.filename}`);
     } else {
       throw new Error(`dbType 有误。dbType: ${dbType}`);
     }
 
+    const mysqlInstance = new Mysql(logger, sequelize);
+    mysqlInstance.logger.info(`connecting: ${config.host} ...`);
+    await mysqlInstance.sequelize.authenticate();
+    mysqlInstance.logger.info(`connection succeeded: ${config.host}`);
     return mysqlInstance;
   }
 
-  async query(sql: string, opt: QueryOptions = null): Promise<any> {
+  async query(sql: string, opt: QueryOptions | null = null): Promise<any> {
     return opt
       ? this.sequelize.query(sql, opt as any)
       : this.sequelize.query(sql);
@@ -247,8 +248,8 @@ export class Mysql {
     const opt = {
       type: QueryTypes.SELECT,
       replacements: replacements,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -274,8 +275,8 @@ export class Mysql {
     const opt = {
       type: QueryTypes.UPDATE,
       replacements: replacements,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -335,8 +336,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.SELECT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -388,8 +389,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.SELECT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -432,8 +433,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.SELECT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -444,7 +445,12 @@ export class Mysql {
     return results[0]["count"];
   }
 
-  _assembleWhere(whereData_: WhereDataType | string): string {
+  _assembleWhere(
+    whereData_: string | WhereDataType | null | undefined
+  ): string {
+    if (!whereData_) {
+      return "";
+    }
     const whereDataType: DataType = getType(whereData_);
     if (whereDataType === "String") {
       return (whereData_ as string).startsWith("where ")
@@ -496,7 +502,7 @@ export class Mysql {
     }
 
     if (andWhereStr && orWhereStr) {
-      return `where (${andWhereStr}) and (${orWhereStr})`;
+      return `where ${andWhereStr} and (${orWhereStr})`;
     }
 
     return `where ${andWhereStr || orWhereStr}`;
@@ -513,7 +519,7 @@ export class Mysql {
           select = "*";
         } else {
           select = data
-            .map((val) => {
+            .map((val: any) => {
               return val;
             })
             .join(",");
@@ -529,7 +535,7 @@ export class Mysql {
             order +
             "order by " +
             data
-              .map((val) => {
+              .map((val: any) => {
                 return `${val[0]} ${val[1]}`;
               })
               .join(",");
@@ -603,9 +609,9 @@ export class Mysql {
         if (data) {
           const fields = data[0].join(",");
           const values = data[1]
-            .map((val) => {
+            .map((val: any) => {
               return `(${val
-                .map((a) => {
+                .map((a: any) => {
                   if (!a) {
                     return "null";
                   }
@@ -618,7 +624,7 @@ export class Mysql {
         }
         return batchInsert;
       default:
-        return null;
+        return "";
     }
   }
 
@@ -671,8 +677,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.SELECT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -707,8 +713,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.UPDATE,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -731,8 +737,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.DELETE,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -761,8 +767,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.INSERT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -788,8 +794,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.INSERT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -817,8 +823,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.INSERT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -850,8 +856,8 @@ export class Mysql {
     `;
     const opt = {
       type: QueryTypes.INSERT,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -884,8 +890,8 @@ export class Mysql {
     const opt = {
       type: QueryTypes.UPDATE,
       replacements: replacements,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -900,8 +906,8 @@ export class Mysql {
     const opt = {
       type: QueryTypes.DELETE,
       replacements: replacements,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
@@ -923,8 +929,8 @@ export class Mysql {
     const opt = {
       type: QueryTypes.INSERT,
       replacements: replacements,
+      transaction,
     };
-    transaction && (opt["transaction"] = transaction);
     this.logger.debug(
       `[sql] ${transaction ? `[transactionId: ${transaction.id}]` : ""} ${sql}`
     );
