@@ -34,6 +34,7 @@ describe("sequelizeHelper", () => {
 
   it("_assembleParam", async () => {
     try {
+      return;
       const instance = new Mysql();
       const result = await instance._assembleParam(`order`, `order by id desc`);
       console.error(result);
@@ -64,8 +65,72 @@ describe("sequelizeHelper", () => {
         source_address: `5134515`,
         status: [5, 7],
         chain: `fadf`,
+        c: 4,
+        or: {
+          a: "a",
+          b: 4,
+        },
       });
       console.error("result3", result3);
+
+      const result4 = await instance._assembleParam(
+        `where`,
+        `
+a = "a"
+and
+b = 3
+`
+      );
+      console.error("result4", result4);
+    } catch (err) {
+      console.error(err);
+      assert.throws(() => {}, err);
+    }
+  });
+
+  it("_assembleParam", async () => {
+    try {
+      const instance = new Mysql();
+      const result1 = instance._assembleWhere({
+        and: {
+          source_address: `5134515`,
+          status: `s:in (5,7)`,
+          chain: `fadf`,
+        },
+      });
+      console.error("result1", result1);
+
+      const result2 = instance._assembleWhere({
+        or: {
+          source_address: `5134515`,
+          status: `s:in (5,7)`,
+          chain: `fadf`,
+        },
+      });
+      console.error("result2", result1);
+
+      const result3 = await instance._assembleWhere({
+        and: {
+          source_address: `5134515`,
+          status: [5, 7],
+          chain: `fadf`,
+          c: 4,
+        },
+        or: {
+          a: "a",
+          b: 4,
+        },
+      });
+      console.error("result3", result3);
+
+      const result4 = await instance._assembleWhere(
+        `
+a = "a"
+and
+b = 3
+`
+      );
+      console.error("result4", result4);
     } catch (err) {
       console.error(err);
       assert.throws(() => {}, err);

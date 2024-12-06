@@ -1,4 +1,4 @@
-import { ILogger } from "@pefish/js-logger";
+import { DataType, getType, ILogger } from "@pefish/js-logger";
 import fs from "fs";
 import { QueryOptions } from "mysql2";
 import { PoolOptions, QueryTypes, Sequelize, Transaction } from "sequelize";
@@ -16,11 +16,7 @@ export interface MysqlConfigration {
 interface SelectOpt {
   select: string | string[];
   from: string;
-  where?:
-    | string
-    | {
-        [x: string]: any;
-      };
+  where?: WhereDataType | null | undefined;
   order?: string | [string, string][];
   limit?: string | number[];
   groupBy?: string | string[];
@@ -31,21 +27,13 @@ interface SelectOpt {
 interface SumOpt {
   sum: string;
   from: string;
-  where?:
-    | string
-    | {
-        [x: string]: any;
-      };
+  where?: WhereDataType | null | undefined;
   if?: boolean | (() => boolean);
 }
 
 interface CountOpt {
   from: string;
-  where:
-    | string
-    | {
-        [x: string]: any;
-      };
+  where: WhereDataType | null | undefined;
   if?: boolean | (() => boolean);
 }
 
@@ -53,11 +41,7 @@ interface UnionSelectOpt {
   from: string;
   to: string;
   unionType: string;
-  where?:
-    | string
-    | {
-        [x: string]: any;
-      };
+  where?: WhereDataType | null | undefined;
   order?: string | [string, string][];
   limit?: string | number[];
   select: string | string[];
@@ -73,21 +57,13 @@ interface UpdateOpt {
         [x: string]: any;
       };
   from: string;
-  where:
-    | string
-    | {
-        [x: string]: any;
-      };
+  where: WhereDataType | null | undefined;
   if?: boolean | (() => boolean);
 }
 
 interface DeleteOpt {
   from: string;
-  where:
-    | string
-    | {
-        [x: string]: any;
-      };
+  where: WhereDataType | null | undefined;
   if?: boolean | (() => boolean);
 }
 
@@ -110,6 +86,19 @@ interface BatchInsertOpt {
   batchInsert: [string[], string[][]];
   from: string;
   if?: boolean | (() => boolean);
+}
+
+interface WhereDataType {
+  and?:
+    | { [x: string]: string | number | (string | number)[] }
+    | string
+    | null
+    | undefined;
+  or?:
+    | { [x: string]: string | number | (string | number)[] }
+    | string
+    | null
+    | undefined;
 }
 
 export class Mysql {
@@ -344,7 +333,7 @@ export class Mysql {
         ${opts.select}
       from
         ${opts.from}
-      ${await this._assembleParam("where", opts.where)}
+      ${this._assembleWhere(opts.where)}
       ${await this._assembleParam("order", opts.order)}
       ${await this._assembleParam("limit", opts.limit)}
       ${await this._assembleParam("groupBy", opts.groupBy)}
@@ -401,7 +390,7 @@ export class Mysql {
         sum(${opts.sum}) as sum
       from
         ${opts.from}
-      ${await this._assembleParam("where", opts.where)}
+      ${this._assembleWhere(opts.where)}
     `;
     const opt = {
       type: QueryTypes.SELECT,
@@ -445,7 +434,7 @@ export class Mysql {
         count(*) as count
       from
         ${opts.from}
-      ${await this._assembleParam("where", opts.where)}
+      ${this._assembleWhere(opts.where)}
     `;
     const opt = {
       type: QueryTypes.SELECT,
@@ -459,6 +448,64 @@ export class Mysql {
       return 0;
     }
     return results[0]["count"];
+  }
+
+  _assembleWhere(whereData_: WhereDataType | string): string {
+    const whereDataType: DataType = getType(whereData_);
+    if (whereDataType === "String") {
+      return (whereData_ as string).startsWith("where ")
+        ? (whereData_ as string)
+        : `where ${whereData_}`;
+    }
+
+    const _assembleWhereObject = (objectValue: Object): string[] => {
+      const arr: string[] = [];
+      for (let [field, value] of Object.entries(objectValue)) {
+        const valueType = getType(value);
+        if (valueType === "String" && (value as string).startsWith("s:")) {
+          arr.push(`${field} ${(value as string).substring(2).trim()}`);
+        } else if (valueType === "Array") {
+          const inStr = `'${(value as any[]).join("','")}'`;
+          arr.push(`${field} in (${inStr})`);
+        } else {
+          arr.push(`${field} = '${value}'`);
+        }
+      }
+      return arr;
+    };
+
+    let andWhereStr = "";
+    const whereData = whereData_ as WhereDataType;
+    if (whereData.and) {
+      const andValue = whereData.and;
+      const andValueType: DataType = getType(andValue);
+      if (andValueType === "String") {
+        andWhereStr = andValue as string;
+      } else if (andValueType === "Object") {
+        andWhereStr = _assembleWhereObject(andValue as Object).join(" and ");
+      }
+    }
+
+    let orWhereStr = "";
+    if (whereData.or) {
+      const orValue = whereData.or;
+      const orValueType: DataType = getType(orValue);
+      if (orValueType === "String") {
+        orWhereStr = orValue as string;
+      } else if (orValueType === "Object") {
+        orWhereStr = _assembleWhereObject(orValue as Object).join(" and ");
+      }
+    }
+
+    if (!andWhereStr && !orWhereStr) {
+      return "";
+    }
+
+    if (andWhereStr && orWhereStr) {
+      return `where (${andWhereStr}) or (${orWhereStr})`;
+    }
+
+    return `where ${andWhereStr || orWhereStr}`;
   }
 
   async _assembleParam(name: string, data: any): Promise<string> {
@@ -478,43 +525,6 @@ export class Mysql {
             .join(",");
         }
         return select;
-      case "where":
-        let where = "";
-        if (!data) {
-          return where;
-        }
-        if (typeof data === "string") {
-          return (data.startsWith(`where`) ? "" : "where ") + data;
-        }
-        where = where + "where 1 = 1 ";
-        for (let [key, value] of Object.entries(data)) {
-          if (value === null || value === undefined) {
-            continue;
-          }
-          const valueType = Object.prototype.toString.call(value) as string;
-          if (
-            valueType.endsWith(`String]`) &&
-            (value as string).startsWith(`s:`)
-          ) {
-            value = (value as string).substring(2);
-            where += `and ${
-              (value as string).startsWith(key) ? "" : key
-            } ${value} `;
-            continue;
-          }
-          if (valueType.endsWith(`String]`) || valueType.endsWith(`Number]`)) {
-            where += `and ${key} = '${this.regularString(
-              value as string | number
-            )}' `;
-            continue;
-          }
-          if (valueType.endsWith(`Array]`)) {
-            where += `and ${key} in (${(value as any[]).join(",")}) `;
-            continue;
-          }
-          throw new Error(`where key error - ${key}`);
-        }
-        return where;
       case "order":
         let order = "";
         if (data) {
@@ -643,7 +653,7 @@ export class Mysql {
     // on
     const on = `${opts.from}.${opts.on[0]} = ${opts.to}.${opts.on[1]}`;
     // where
-    const where = await this._assembleParam("where", opts.where);
+    const where = this._assembleWhere(opts.where);
     // order
     const order = await this._assembleParam("order", opts.order);
     // limit
@@ -699,7 +709,7 @@ export class Mysql {
         ${opts.from}
       set
         ${await this._assembleParam("update", opts.update)}
-      ${await this._assembleParam("where", opts.where)}
+      ${this._assembleWhere(opts.where)}
     `;
     const opt = {
       type: QueryTypes.UPDATE,
@@ -723,7 +733,7 @@ export class Mysql {
     const sql = `
       delete from
         ${opts.from}
-      ${await this._assembleParam("where", opts.where)}
+      ${this._assembleWhere(opts.where)}
     `;
     const opt = {
       type: QueryTypes.DELETE,
