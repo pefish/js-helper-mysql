@@ -167,12 +167,18 @@ export class Mysql {
   }
 
   regularString(str: any): string {
-    let result = str.toString();
+    let result: string;
     switch (Object.prototype.toString.call(str)) {
       case "[object Object]":
         result = JSON.stringify(str);
       case "[object Array]":
         result = JSON.stringify(str);
+      case "[object Null]":
+        result = "NULL";
+      case "[object Undefined]":
+        result = "NULL";
+      default:
+        result = str.toString();
     }
     return result.replace(/\\/g, "\\\\").replace(/\'/g, "\\'");
   }
@@ -465,10 +471,14 @@ export class Mysql {
         if (valueType === "String" && (value as string).startsWith("s:")) {
           arr.push(`${field} ${(value as string).substring(2).trim()}`);
         } else if (valueType === "Array") {
-          const inStr = `'${(value as any[]).join("','")}'`;
+          const inStr = `'${(value as any[])
+            .map((vEle: any) => {
+              return this.regularString(vEle);
+            })
+            .join("','")}'`;
           arr.push(`${field} in (${inStr})`);
         } else {
-          arr.push(`${field} = '${value}'`);
+          arr.push(`${field} = '${this.regularString(value)}'`);
         }
       }
       return arr;

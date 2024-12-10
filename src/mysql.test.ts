@@ -124,6 +124,15 @@ b = 3
 `
     );
     console.error("result4", result4);
+
+    const result5 = await instance._assembleWhere({
+      and: `a=2 and b=3`,
+      or: {
+        c: 5,
+        d: 6,
+      },
+    });
+    console.error("result5", result5);
   });
 
   // it("select", async () => {
