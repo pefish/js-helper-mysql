@@ -171,14 +171,19 @@ export class Mysql {
     switch (Object.prototype.toString.call(str)) {
       case "[object Object]":
         result = JSON.stringify(str);
+        break;
       case "[object Array]":
         result = JSON.stringify(str);
+        break;
       case "[object Null]":
         result = "NULL";
+        break;
       case "[object Undefined]":
         result = "NULL";
+        break;
       default:
         result = str.toString();
+        break;
     }
     return result.replace(/\\/g, "\\\\").replace(/\'/g, "\\'");
   }

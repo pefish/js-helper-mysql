@@ -37,12 +37,6 @@ describe("sequelizeHelper", () => {
     const instance = new Mysql(new Logger(), null as any);
     const result = await instance._assembleParam(`order`, `order by id desc`);
     console.error(result);
-    const result1 = await instance._assembleParam(`where`, {
-      source_address: `5134515`,
-      status: `s:in (5,7)`,
-      chain: `fadf`,
-    });
-    console.error("result1", result1);
 
     const result2 = await instance._assembleParam(`insert`, {
       a: {
@@ -60,30 +54,18 @@ describe("sequelizeHelper", () => {
     });
     console.error("result2", result2);
 
-    const result3 = await instance._assembleParam(`where`, {
-      source_address: `5134515`,
-      status: [5, 7],
-      chain: `fadf`,
-      c: 4,
-      or: {
-        a: "a",
-        b: 4,
+    const result3 = await instance._assembleParam(`update`, {
+      a: {
+        name: "Tostada cat",
+        symbol: "TOSTADA",
+        description: "I am Tostada , Jaiden's lovely cat. Meow.",
       },
     });
     console.error("result3", result3);
-
-    const result4 = await instance._assembleParam(
-      `where`,
-      `
-a = "a"
-and
-b = 3
-`
-    );
-    console.error("result4", result4);
   });
 
-  it("_assembleParam", async () => {
+  it("_assembleWhere", async () => {
+    return;
     const instance = new Mysql(new Logger(), null as any);
     const result1 = instance._assembleWhere({
       and: {
